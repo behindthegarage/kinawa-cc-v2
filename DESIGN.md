@@ -4,9 +4,10 @@
 
 **Document Status:** Draft  
 **Last Updated:** 2026-03-15  
-**Related Project Doc:** `projects/kinawa-cc-v2.md`  
+**Related Project Doc:** `projects/kinawa-cc-v2.md` (planning/design)  
+**Build Repo:** `kinawa-cc-v2-local/` (this directory)  
 **Project Category:** Category A (application code)  
-**Canonical Local Authoring Repo:** `~/.openclaw/workspace/projects/kinawa-cc-v2/`  
+**Canonical Local Build Repo:** `~/.openclaw/workspace/kinawa-cc-v2-local/`  
 **GitHub Repo:** `behindthegarage/kinawa-cc-v2` (to be created)  
 **VPS Runtime Path:** `/home/openclaw/kinawa-cc-v2/`  
 **Owner / Stakeholders:** Adam (primary user), Hari (builder)

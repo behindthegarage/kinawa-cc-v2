@@ -17,7 +17,8 @@ Reference standard: `docs/BTG_AGENTS_STANDARD.md`
 - VPS is **runtime truth**, not routine authoring truth
 
 ## Canonical Locations / Paths
-- **Canonical local authoring repo:** `~/.openclaw/workspace/projects/kinawa-cc-v2/`
+- **This build repo (local authoring):** `~/.openclaw/workspace/kinawa-cc-v2-local/`
+- **Project docs (planning/design):** `~/.openclaw/workspace/projects/kinawa-cc-v2.md`
 - **GitHub repo:** `behindthegarage/kinawa-cc-v2` (to be created)
 - **VPS runtime path:** `/home/openclaw/kinawa-cc-v2/`
 - **Canonical runtime host:** VPS (162.212.153.134)
@@ -26,7 +27,7 @@ Reference standard: `docs/BTG_AGENTS_STANDARD.md`
 - **Rule:** If task is host-bound and `hostname` is not `p5gHxcyh7WDx`, stop and SSH to VPS first
 
 ## Setup Commands (Local)
-- **Enter local repo:** `cd ~/.openclaw/workspace/projects/kinawa-cc-v2/`
+- **Enter build repo:** `cd ~/.openclaw/workspace/kinawa-cc-v2-local/`
 - **Activate environment:** `source venv/bin/activate`
 - **Install dependencies:** `pip install -r requirements.txt`
 - **Initialize local config:** `cp .env.example .env` (edit as needed)
