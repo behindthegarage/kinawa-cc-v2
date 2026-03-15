@@ -12,8 +12,12 @@ Usage:
 import os
 import sys
 
-# Add the project directory to the path
+# Load environment variables from .env file early
+from dotenv import load_dotenv
 project_dir = os.path.dirname(os.path.abspath(__file__))
+load_dotenv(os.path.join(project_dir, '.env'))
+
+# Add the project directory to the path
 sys.path.insert(0, project_dir)
 
 from app import create_app
@@ -38,8 +42,9 @@ def get_config_name():
                 config_name = config_map.get(arg.split('=')[1], 'default')
     
     # Check environment variable (FLASK_ENV takes precedence)
-    if 'FLASK_ENV' in os.environ:
-        config_name = config_map.get(os.environ['FLASK_ENV'], config_name)
+    flask_env = os.environ.get('FLASK_ENV')
+    if flask_env:
+        config_name = config_map.get(flask_env, config_name)
     
     return config_name
 
@@ -62,7 +67,7 @@ def main():
     
     app.run(host=host, port=port, debug=debug)
 
-# Create app instance for Flask CLI (uses FLASK_ENV)
+# Create app instance for Flask CLI (uses FLASK_ENV from .env)
 config_name = get_config_name()
 app = create_app(config_name)
 
