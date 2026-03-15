@@ -18,7 +18,7 @@
             </div>
             
             {% if current_user.is_authenticated %}
-            <div class="nav-links">
+            <div class="nav-links" hx-boost="false">
                 <a href="{{ url_for('main.index') }}" class="{% if request.endpoint == 'main.index' %}active{% endif %}">Dashboard</a>
                 <a href="{{ url_for('schedule.index') }}" class="{% if request.endpoint and 'schedule' in request.endpoint %}active{% endif %}">Schedule</a>
                 <a href="{{ url_for('staff.index') }}" class="{% if request.endpoint and 'staff' in request.endpoint %}active{% endif %}">Staff</a>
