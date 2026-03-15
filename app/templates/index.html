@@ -14,13 +14,13 @@
         <div class="card">
             <h2>📋 Licensing</h2>
             <p>Track compliance checklists and training status.</p>
-            <a href="#" class="btn btn-primary">View Licensing</a>
+            <a href="{{ url_for('licensing.dashboard') }}" class="btn btn-primary">View Licensing</a>
         </div>
         
         <div class="card">
             <h2>🧾 GFS Reconciliation</h2>
             <p>Upload and reconcile GFS invoices.</p>
-            <a href="#" class="btn btn-primary">GFS Tools</a>
+            <a href="{{ url_for('gfs.index') }}" class="btn btn-primary">GFS Tools</a>
         </div>
     </div>
     
