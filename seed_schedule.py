@@ -143,7 +143,7 @@ def seed_schedule_assignments(staff_map):
 
 def main():
     """Main seed function."""
-    app = create_app()
+    app = create_app("production")
     
     with app.app_context():
         print("=" * 60)
