@@ -34,6 +34,9 @@
             </div>
 
             <div class="nav-user">
+                <button type="button" class="theme-toggle" id="theme-toggle" title="Toggle dark mode">
+                    <span id="theme-icon">🌙</span>
+                </button>
                 <div class="user-chip">
                     <span class="user-avatar">{{ current_user.username[:1]|upper }}</span>
                     <span class="user-meta">
@@ -66,5 +69,48 @@
     </footer>
 
     {% block scripts %}{% endblock %}
+
+    <script>
+        // Theme toggle functionality
+        (function() {
+            const html = document.documentElement;
+            const toggleBtn = document.getElementById('theme-toggle');
+            const themeIcon = document.getElementById('theme-icon');
+            const STORAGE_KEY = 'theme';
+
+            // Get saved theme or default to light
+            const savedTheme = localStorage.getItem(STORAGE_KEY);
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const currentTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+
+            // Apply theme on load
+            if (currentTheme === 'dark') {
+                html.setAttribute('data-theme', 'dark');
+                themeIcon.textContent = '☀️';
+            } else {
+                html.removeAttribute('data-theme');
+                themeIcon.textContent = '🌙';
+            }
+
+            // Toggle function
+            function toggleTheme() {
+                const isDark = html.getAttribute('data-theme') === 'dark';
+                if (isDark) {
+                    html.removeAttribute('data-theme');
+                    localStorage.setItem(STORAGE_KEY, 'light');
+                    themeIcon.textContent = '🌙';
+                } else {
+                    html.setAttribute('data-theme', 'dark');
+                    localStorage.setItem(STORAGE_KEY, 'dark');
+                    themeIcon.textContent = '☀️';
+                }
+            }
+
+            // Attach event listener
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', toggleTheme);
+            }
+        })();
+    </script>
 </body>
 </html>
