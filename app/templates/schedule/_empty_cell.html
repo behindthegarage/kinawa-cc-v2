@@ -1,0 +1,3 @@
+<a href="{{ url_for('schedule.assign') }}?date={{ date }}&shift_type={{ shift_type }}" class="add-link" hx-get="{{ url_for('schedule.assign') }}?date={{ date }}&shift_type={{ shift_type }}" hx-target="#modal-container">
+    <span class="unassigned">+ Add</span>
+</a>

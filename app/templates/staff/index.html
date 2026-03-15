@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="staff-container">
+    <div class="staff-header">
+        <h1>Staff Management</h1>
+        <div class="staff-actions">
+            <a href="{{ url_for('staff.add') }}" class="btn btn-primary">+ Add New Staff</a>
+            <form method="GET" action="{{ url_for('staff.index') }}" class="filter-form">
+                <label class="checkbox-label">
+                    <input type="checkbox" name="show_inactive" value="1" {{ 'checked' if show_inactive else '' }} onchange="this.form.submit()">
+                    Show inactive staff
+                </label>
+            </form>
+        </div>
+    </div>
+
+    <div class="staff-table-wrapper">
+        <table class="staff-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Hire Date</th>
+                    <th>Status</th>
+                    <th>Notes</th>
+                    <th class="actions">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for staff in staff_list %}
+                <tr class="{{ 'inactive' if not staff.active else '' }}">
+                    <td class="staff-name">
+                        <a href="{{ url_for('staff.detail', staff_id=staff.id) }}">{{ staff.full_name }}</a>
+                    </td>
+                    <td>
+                        {% if staff.hire_date %}
+                            {{ staff.hire_date.strftime('%B %d, %Y') }}
+                        {% else %}
+                            <span class="not-set">Not set</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="status-badge {{ 'active' if staff.active else 'inactive' }}">
+                            {{ 'Active' if staff.active else 'Inactive' }}
+                        </span>
+                    </td>
+                    <td class="notes">
+                        {% if staff.notes %}
+                            {{ staff.notes[:50] }}{{ '...' if staff.notes|length > 50 else '' }}
+                        {% else %}
+                            <span class="not-set">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="actions">
+                        <a href="{{ url_for('staff.edit', staff_id=staff.id) }}" class="btn btn-sm btn-secondary">Edit</a>
+                        <form method="POST" action="{{ url_for('staff.toggle_active', staff_id=staff.id) }}" class="inline-form">
+                            <button type="submit" class="btn btn-sm {{ 'btn-warning' if staff.active else 'btn-success' }}">
+                                {{ 'Deactivate' if staff.active else 'Activate' }}
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" class="empty-state">
+                        <p>No staff members found.{% if not show_inactive %} <a href="{{ url_for('staff.index', show_inactive=1) }}">Show inactive</a>?{% endif %}</p>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="staff-legend">
+        <p><strong>Note:</strong> Staff members cannot be deleted to preserve historical schedule data. Instead, you can deactivate them to remove them from active scheduling.</p>
+    </div>
+</div>
+{% endblock %}

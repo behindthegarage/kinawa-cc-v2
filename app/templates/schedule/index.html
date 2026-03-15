@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="schedule-container">
+    <div class="schedule-header">
+        <h1>Staff Schedule</h1>
+        <div class="schedule-nav">
+            <a href="{{ url_for('schedule.index', week=prev_week) }}" class="btn btn-secondary">‹ Previous Week</a>
+            <span class="current-week">{{ monday.strftime('%b %d') }} - {{ friday.strftime('%b %d, %Y') }}</span>
+            <a href="{{ url_for('schedule.index', week=next_week) }}" class="btn btn-secondary">Next Week ›</a>
+        </div>
+        <div class="schedule-actions">
+            <a href="{{ url_for('schedule.print_view', week=week_offset) }}" class="btn btn-secondary" target="_blank">🖨️ Print View</a>
+            <a href="{{ url_for('staff.index') }}" class="btn btn-primary">👥 Manage Staff</a>
+        </div>
+    </div>
+
+    <div class="schedule-grid-wrapper">
+        <table class="schedule-grid">
+            <thead>
+                <tr>
+                    <th class="shift-header">Shift</th>
+                    {% for date in week_dates %}
+                    <th class="day-header {{ 'today' if date == today else '' }}">
+                        <span class="day-name">{{ date.strftime('%A') }}</span>
+                        <span class="day-date">{{ date.strftime('%b %d') }}</span>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="shift-row before-care">
+                    <td class="shift-label">
+                        <strong>Before Care</strong>
+                        <span class="shift-time">6:45 AM - 9:00 AM</span>
+                    </td>
+                    {% for date in week_dates %}
+                    <td class="shift-cell" data-date="{{ date }}" data-shift="before">
+                        <div class="cell-content" hx-get="{{ url_for('schedule.cell_content', date=date, shift_type='before') }}" hx-trigger="load">
+                            {% if schedule_grid[date]['before'] %}
+                                {% for item in schedule_grid[date]['before'] %}
+                                <div class="assigned-staff">
+                                    <span class="staff-name">{{ item.staff_name }}</span>
+                                    <form method="POST" action="{{ url_for('schedule.delete_assignment', assignment_id=item.id) }}" class="delete-form" hx-post="{{ url_for('schedule.delete_assignment', assignment_id=item.id) }}" hx-target="closest .shift-cell" hx-swap="innerHTML" hx-confirm="Remove {{ item.staff_name }} from this shift?">
+                                        <button type="submit" class="btn-remove" title="Remove">×</button>
+                                    </form>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <a href="{{ url_for('schedule.assign') }}?date={{ date }}&shift_type=before" class="add-link" hx-get="{{ url_for('schedule.assign') }}?date={{ date }}&shift_type=before" hx-target="#modal-container">
+                                    <span class="unassigned">+ Add</span>
+                                </a>
+                            {% endif %}
+                        </div>
+                        <a href="{{ url_for('schedule.assign') }}?date={{ date }}&shift_type=before" class="add-more" hx-get="{{ url_for('schedule.assign') }}?date={{ date }}&shift_type=before" hx-target="#modal-container">+ Add staff</a>
+                    </td>
+                    {% endfor %}
+                </tr>
+                <tr class="shift-row after-care">
+                    <td class="shift-label">
+                        <strong>After Care</strong>
+                        <span class="shift-time">2:30 PM - 6:00 PM</span>
+                    </td>
+                    {% for date in week_dates %}
+                    <td class="shift-cell" data-date="{{ date }}" data-shift="after">
+                        <div class="cell-content" hx-get="{{ url_for('schedule.cell_content', date=date, shift_type='after') }}" hx-trigger="load">
+                            {% if schedule_grid[date]['after'] %}
+                                {% for item in schedule_grid[date]['after'] %}
+                                <div class="assigned-staff">
+                                    <span class="staff-name">{{ item.staff_name }}</span>
+                                    <form method="POST" action="{{ url_for('schedule.delete_assignment', assignment_id=item.id) }}" class="delete-form" hx-post="{{ url_for('schedule.delete_assignment', assignment_id=item.id) }}" hx-target="closest .shift-cell" hx-swap="innerHTML" hx-confirm="Remove {{ item.staff_name }} from this shift?">
+                                        <button type="submit" class="btn-remove" title="Remove">×</button>
+                                    </form>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <a href="{{ url_for('schedule.assign') }}?date={{ date }}&shift_type=after" class="add-link" hx-get="{{ url_for('schedule.assign') }}?date={{ date }}&shift_type=after" hx-target="#modal-container">
+                                    <span class="unassigned">+ Add</span>
+                                </a>
+                            {% endif %}
+                        </div>
+                        <a href="{{ url_for('schedule.assign') }}?date={{ date }}&shift_type=after" class="add-more" hx-get="{{ url_for('schedule.assign') }}?date={{ date }}&shift_type=after" hx-target="#modal-container">+ Add staff</a>
+                    </td>
+                    {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="schedule-legend">
+        <h3>Quick Guide</h3>
+        <ul>
+            <li>Click <strong>+ Add</strong> or <strong>+ Add staff</strong> to assign someone to a shift</li>
+            <li>Click <strong>×</strong> next to a name to remove them from a shift</li>
+            <li>Use <strong>Previous Week</strong> / <strong>Next Week</strong> to navigate</li>
+            <li>Click <strong>Print View</strong> for a clean schedule to post</li>
+        </ul>
+    </div>
+</div>
+
+<!-- Modal container for assignment form -->
+<div id="modal-container" class="modal-container"></div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+<script>
+// Close modal when clicking outside
+document.addEventListener('click', function(e) {
+    const modal = document.getElementById('modal-container');
+    if (e.target === modal) {
+        modal.innerHTML = '';
+    }
+});
+
+// Close modal on escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        const modal = document.getElementById('modal-container');
+        modal.innerHTML = '';
+    }
+});
+</script>
+{% endblock %}

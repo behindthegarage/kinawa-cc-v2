@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="staff-detail-container">
+    <div class="staff-detail-header">
+        <h1>{{ staff.full_name }}</h1>
+        <span class="status-badge {{ 'active' if staff.active else 'inactive' }}">
+            {{ 'Active' if staff.active else 'Inactive' }}
+        </span>
+    </div>
+
+    <div class="staff-info-grid">
+        <div class="info-card">
+            <h3>Staff Information</h3>
+            <dl>
+                <dt>Hire Date</dt>
+                <dd>
+                    {% if staff.hire_date %}
+                        {{ staff.hire_date.strftime('%B %d, %Y') }}
+                    {% else %}
+                        <span class="not-set">Not set</span>
+                    {% endif %}
+                </dd>
+                
+                <dt>Created</dt>
+                <dd>{{ staff.created_at.strftime('%B %d, %Y') if staff.created_at else 'Unknown' }}</dd>
+                
+                <dt>Last Updated</dt>
+                <dd>{{ staff.updated_at.strftime('%B %d, %Y at %I:%M %p') if staff.updated_at else 'Unknown' }}</dd>
+            </dl>
+            
+            {% if staff.notes %}
+            <div class="staff-notes">
+                <h4>Notes</h4>
+                <p>{{ staff.notes }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="info-card">
+            <h3>Recent Schedule (±30 days)</h3>
+            {% if assignments %}
+            <ul class="assignment-list">
+                {% for assignment in assignments %}
+                <li class="{{ 'past' if assignment.date < today else 'upcoming' }}">
+                    <span class="assignment-date">{{ assignment.date.strftime('%a, %b %d') }}</span>
+                    <span class="assignment-shift {{ assignment.shift_type }}">
+                        {{ 'Before Care' if assignment.shift_type == 'before' else 'After Care' }}
+                    </span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="empty-state">No schedule assignments in the past or next 30 days.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="staff-detail-actions">
+        <a href="{{ url_for('staff.edit', staff_id=staff.id) }}" class="btn btn-primary">Edit Staff</a>
+        <form method="POST" action="{{ url_for('staff.toggle_active', staff_id=staff.id) }}" class="inline-form">
+            <button type="submit" class="btn {{ 'btn-warning' if staff.active else 'btn-success' }}">
+                {{ 'Deactivate' if staff.active else 'Activate' }}
+            </button>
+        </form>
+        <a href="{{ url_for('staff.index') }}" class="btn btn-secondary">← Back to Staff List</a>
+    </div>
+</div>
+{% endblock %}

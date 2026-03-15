@@ -1,0 +1,9 @@
+{% for item in schedule_grid[date][shift_type] %}
+<div class="assigned-staff">
+    <span class="staff-name">{{ item.staff_name }}</span>
+    <form method="POST" action="{{ url_for('schedule.delete_assignment', assignment_id=item.id) }}" class="delete-form" hx-post="{{ url_for('schedule.delete_assignment', assignment_id=item.id) }}" hx-target="closest .shift-cell" hx-swap="innerHTML" hx-confirm="Remove {{ item.staff_name }} from this shift?">
+        <button type="submit" class="btn-remove" title="Remove">×</button>
+    </form>
+</div>
+{% endfor %}
+<a href="{{ url_for('schedule.assign') }}?date={{ date }}&shift_type={{ shift_type }}" class="add-more" hx-get="{{ url_for('schedule.assign') }}?date={{ date }}&shift_type={{ shift_type }}" hx-target="#modal-container">+ Add staff</a>

@@ -23,6 +23,18 @@ def create_app(config_name='default'):
     from app.routes.auth import bp as auth_bp
     app.register_blueprint(auth_bp, url_prefix='/auth')
     
+    from app.routes.schedule import bp as schedule_bp
+    app.register_blueprint(schedule_bp)
+    
+    from app.routes.staff import bp as staff_bp
+    app.register_blueprint(staff_bp)
+    
+    # Register context processors
+    from datetime import datetime
+    @app.context_processor
+    def inject_now():
+        return {'now': datetime.now}
+    
     # Create admin user (for MVP)
     with app.app_context():
         _create_admin_user(app)

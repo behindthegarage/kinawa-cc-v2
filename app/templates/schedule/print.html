@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 12pt;
+            line-height: 1.4;
+            color: #000;
+            padding: 20px;
+        }
+        
+        .print-header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #000;
+        }
+        
+        .print-header h1 {
+            font-size: 24pt;
+            margin-bottom: 5px;
+        }
+        
+        .print-header .week-range {
+            font-size: 14pt;
+            color: #333;
+        }
+        
+        .print-header .program-name {
+            font-size: 16pt;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .schedule-table th,
+        .schedule-table td {
+            border: 1px solid #000;
+            padding: 12px 8px;
+            text-align: left;
+            vertical-align: top;
+        }
+        
+        .schedule-table th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .schedule-table .day-header {
+            width: 18%;
+        }
+        
+        .schedule-table .day-name {
+            display: block;
+            font-size: 11pt;
+            text-transform: uppercase;
+        }
+        
+        .schedule-table .day-date {
+            display: block;
+            font-size: 10pt;
+            color: #555;
+        }
+        
+        .schedule-table .shift-label {
+            font-weight: bold;
+            background-color: #f8f8f8;
+            width: 10%;
+            text-align: center;
+            font-size: 10pt;
+        }
+        
+        .schedule-table .shift-label .shift-time {
+            display: block;
+            font-size: 8pt;
+            font-weight: normal;
+            color: #666;
+            margin-top: 3px;
+        }
+        
+        .schedule-table td {
+            min-height: 60px;
+        }
+        
+        .staff-list {
+            list-style: none;
+        }
+        
+        .staff-list li {
+            padding: 2px 0;
+            font-size: 11pt;
+        }
+        
+        .empty-shift {
+            color: #999;
+            font-style: italic;
+            font-size: 10pt;
+        }
+        
+        .print-footer {
+            margin-top: 30px;
+            padding-top: 15px;
+            border-top: 1px solid #ccc;
+            font-size: 10pt;
+            color: #666;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .print-actions {
+            margin-bottom: 20px;
+            text-align: right;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: #2563eb;
+            color: white;
+            text-decoration: none;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 11pt;
+        }
+        
+        .btn-secondary {
+            background-color: #6b7280;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+        }
+        
+        /* Print-specific styles */
+        @media print {
+            body {
+                padding: 0;
+            }
+            
+            .print-actions {
+                display: none;
+            }
+            
+            .print-header {
+                margin-bottom: 15px;
+            }
+            
+            .schedule-table {
+                page-break-inside: auto;
+            }
+            
+            .schedule-table tr {
+                page-break-inside: avoid;
+            }
+            
+            .print-footer {
+                position: fixed;
+                bottom: 0;
+                left: 20px;
+                right: 20px;
+            }
+        }
+        
+        @page {
+            margin: 15mm;
+        }
+    </style>
+</head>
+<body>
+    <div class="print-actions">
+        <a href="{{ url_for('schedule.index', week=week_offset) }}" class="btn btn-secondary">← Back to Schedule</a>
+        <button onclick="window.print()" class="btn">🖨️ Print</button>
+    </div>
+
+    <div class="print-header">
+        <h1>Staff Schedule</h1>
+        <div class="week-range">Week of {{ monday.strftime('%B %d') }} - {{ friday.strftime('%B %d, %Y') }}</div>
+        <div class="program-name">Club Kinawa — Before & After School Care</div>
+    </div>
+
+    <table class="schedule-table">
+        <thead>
+            <tr>
+                <th>Shift</th>
+                {% for date in week_dates %}
+                <th class="day-header">
+                    <span class="day-name">{{ date.strftime('%A') }}</span>
+                    <span class="day-date">{{ date.strftime('%B %d') }}</span>
+                </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="shift-label">
+                    Before Care
+                    <span class="shift-time">6:45 AM - 9:00 AM</span>
+                </td>
+                {% for date in week_dates %}
+                <td>
+                    {% if schedule_grid[date]['before'] %}
+                    <ul class="staff-list">
+                        {% for name in schedule_grid[date]['before'] %}
+                        <li>{{ name }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <span class="empty-shift">No staff assigned</span>
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            <tr>
+                <td class="shift-label">
+                    After Care
+                    <span class="shift-time">2:30 PM - 6:00 PM</span>
+                </td>
+                {% for date in week_dates %}
+                <td>
+                    {% if schedule_grid[date]['after'] %}
+                    <ul class="staff-list">
+                        {% for name in schedule_grid[date]['after'] %}
+                        <li>{{ name }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <span class="empty-shift">No staff assigned</span>
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="print-footer">
+        <span>Generated: {{ now().strftime('%B %d, %Y at %I:%M %p') }}</span>
+        <span>Club Kinawa — ClubKinawa.net</span>
+    </div>
+</body>
+</html>
