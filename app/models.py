@@ -95,12 +95,34 @@ class ChecklistCompletion(db.Model):
     staff_id = db.Column(db.Integer, db.ForeignKey('staff.id'), nullable=False)
     item_id = db.Column(db.Integer, db.ForeignKey('checklist_items.id'), nullable=False)
     completed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=True)  # For recurring items (CPR, etc.)
     evidence_url = db.Column(db.String(500), nullable=True)  # Link to certificate/doc
     notes = db.Column(db.Text, nullable=True)
     
     # Relationships
     staff = db.relationship('Staff', back_populates='checklist_completions')
     item = db.relationship('ChecklistItem', back_populates='completions')
+    
+    def is_expired(self):
+        """Check if this completion has expired."""
+        if not self.expires_at:
+            return False
+        return datetime.utcnow() > self.expires_at
+    
+    def is_expiring_soon(self, days=30):
+        """Check if this completion expires within specified days."""
+        if not self.expires_at:
+            return False
+        from datetime import timedelta
+        return datetime.utcnow() <= self.expires_at <= datetime.utcnow() + timedelta(days=days)
+    
+    def status_class(self):
+        """Return CSS class for status indicator."""
+        if self.is_expired():
+            return 'expired'
+        elif self.is_expiring_soon():
+            return 'expiring-soon'
+        return 'valid'
     
     def __repr__(self):
         return f'<ChecklistCompletion {self.staff.full_name} - {self.item.name}>'

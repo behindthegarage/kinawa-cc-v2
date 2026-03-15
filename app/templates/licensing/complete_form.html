@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    .form-card {
+        max-width: 600px;
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .item-info {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 6px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .item-info h3 {
+        margin: 0 0 0.5rem 0;
+    }
+    
+    .item-info p {
+        margin: 0;
+        color: #6c757d;
+    }
+    
+    .form-hint {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+    
+    .file-input-wrapper {
+        position: relative;
+    }
+    
+    .file-input-wrapper input[type="file"] {
+        padding: 0.5rem 0;
+    }
+    
+    .file-help {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+    
+    .current-evidence {
+        background: #e8f4fd;
+        padding: 0.75rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .current-evidence a {
+        color: #3498db;
+        text-decoration: none;
+    }
+    
+    .current-evidence a:hover {
+        text-decoration: underline;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1>{% if request.endpoint.endswith('edit') %}✏️ Edit{% else %}✅ Mark as Complete{% endif %}</h1>
+    <a href="{{ url_for('licensing.staff_checklist', staff_id=staff.id) }}" class="btn btn-secondary">← Cancel</a>
+</div>
+
+<div class="form-card">
+    <div class="item-info">
+        <h3>{{ item.name }}</h3>
+        <p><strong>Staff:</strong> {{ staff.full_name }}</p>
+        {% if item.description %}
+        <p style="margin-top: 0.5rem;">{{ item.description }}</p>
+        {% endif %}
+    </div>
+    
+    <form method="post" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="completed_date">Date Completed</label>
+            <input type="date" id="completed_date" name="completed_date" class="form-control"
+                   value="{% if request.endpoint.endswith('edit') and completion %}{{ completion.completed_at.strftime('%Y-%m-%d') }}{% else %}{{ now().strftime('%Y-%m-%d') }}{% endif %}">
+            <p class="form-hint">When was this requirement completed?</p>
+        </div>
+        
+        <div class="form-group">
+            <label for="expires_date">Expiration Date (Optional)</label>
+            <input type="date" id="expires_date" name="expires_date" class="form-control"
+                   value="{% if request.endpoint.endswith('edit') and completion and completion.expires_at %}{{ completion.expires_at.strftime('%Y-%m-%d') }}{% endif %}">
+            <p class="form-hint">For recurring items like CPR (annual) or TB tests (2 years). Leave blank for one-time requirements.</p>
+        </div>
+        
+        {% if request.endpoint.endswith('edit') and completion and completion.evidence_url %}
+        <div class="current-evidence">
+            <span>📄 Current evidence uploaded</span>
+            <a href="{{ url_for('licensing.view_evidence', filename=completion.evidence_url.split('/')|last) }}" target="_blank">View →</a>
+        </div>
+        {% endif %}
+        
+        <div class="form-group">
+            <label for="evidence">Upload Evidence (Optional)</label>
+            <div class="file-input-wrapper">
+                <input type="file" id="evidence" name="evidence" class="form-control" accept=".pdf,.png,.jpg,.jpeg">
+            </div>
+            <p class="file-help">Accepted: PDF, PNG, JPG. Max size: 5MB. Upload certificates, test results, or training documentation.</p>
+        </div>
+        
+        <div class="form-group">
+            <label for="notes">Notes (Optional)</label>
+            <textarea id="notes" name="notes" class="form-control" rows="3"
+                      placeholder="Any additional notes about this completion...">{% if request.endpoint.endswith('edit') and completion %}{{ completion.notes or '' }}{% endif %}</textarea>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="btn btn-success">
+                {% if request.endpoint.endswith('edit') %}💾 Save Changes{% else %}✓ Mark as Complete{% endif %}
+            </button>
+            <a href="{{ url_for('licensing.staff_checklist', staff_id=staff.id) }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

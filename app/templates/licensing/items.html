@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .category-group {
+        margin-bottom: 2rem;
+    }
+    
+    .category-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2c3e50;
+        padding: 0.5rem 0;
+        border-bottom: 2px solid #3498db;
+        margin-bottom: 1rem;
+    }
+    
+    .item-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background: white;
+        border-radius: 6px;
+        margin-bottom: 0.75rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+        transition: box-shadow 0.2s;
+    }
+    
+    .item-row:hover {
+        box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    }
+    
+    .item-info h4 {
+        font-size: 1rem;
+        margin: 0 0 0.25rem 0;
+        color: #2c3e50;
+    }
+    
+    .item-info p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    .item-meta {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.8rem;
+        color: #95a5a6;
+        margin-top: 0.25rem;
+    }
+    
+    .item-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .seed-section {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    
+    .seed-section p {
+        margin-bottom: 1rem;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>📋 Licensing Checklist Items</h1>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('licensing.dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
+        <a href="{{ url_for('licensing.add_item') }}" class="btn btn-primary">+ Add New Item</a>
+    </div>
+</div>
+
+<!-- Quick seed button if no items exist -->
+{% if not items %}
+<div class="seed-section">
+    <p>No checklist items have been created yet.</p>
+    <form method="post" action="{{ url_for('licensing.seed_checklist_items') }}">
+        <button type="submit" class="btn btn-primary">
+            🚀 Seed Michigan Licensing Requirements
+        </button>
+    </form>
+    <p class="text-small mt-2">This will add CPR, First Aid, TB Test, Background Check, and other required items.</p>
+</div>
+{% else %}
+<div class="seed-section">
+    <form method="post" action="{{ url_for('licensing.seed_checklist_items') }}">
+        <button type="submit" class="btn btn-secondary">
+            🔄 Re-seed Michigan Licensing Requirements
+        </button>
+    </form>
+    <p class="text-small mt-2">Adds missing items from the standard Michigan child care licensing list.</p>
+</div>
+{% endif %}
+
+<!-- Group items by category -->
+{% set grouped = {} %}
+{% for item in items %}
+    {% if item.category not in grouped %}
+        {% set _ = grouped.update({item.category: []}) %}
+    {% endif %}
+    {% set _ = grouped[item.category].append(item) %}
+{% endfor %}
+
+{% for category, cat_items in grouped|dictsort %}
+<div class="category-group">
+    <div class="category-title">{{ category }} ({{ cat_items|length }} items)</div>
+    
+    {% for item in cat_items|sort(attribute='sort_order') %}
+    <div class="item-row">
+        <div class="item-info">
+            <h4>{{ item.name }}</h4>
+            {% if item.description %}
+            <p>{{ item.description }}</p>
+            {% endif %}
+            <div class="item-meta">
+                <span>Order: {{ item.sort_order }}</span>
+                <span>Required: {{ item.required_for }}</span>
+            </div>
+        </div>
+        
+        <div class="item-actions">
+            <a href="{{ url_for('licensing.edit_item', item_id=item.id) }}" class="btn btn-sm btn-secondary">Edit</a>
+            
+            <form method="post" action="{{ url_for('licensing.delete_item', item_id=item.id) }}" 
+                  style="display: inline;"
+                  onsubmit="return confirm('Are you sure? This will also delete all completion records for this item.');">
+                <button type="submit" class="btn btn-sm btn-danger">Delete</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endfor %}
+
+{% if not items %}
+<div class="empty-state">
+    <div class="empty-state-icon">📝</div>
+    <h3>No checklist items</h3>
+    <p>Add items above or use the seed button to get started.</p>
+</div>
+{% endif %}
+{% endblock %}

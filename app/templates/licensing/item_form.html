@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    .form-card {
+        max-width: 600px;
+        background: white;
+        border-radius: 8px;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .form-hint {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+    
+    .category-suggestions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+    
+    .category-suggestion {
+        padding: 0.25rem 0.5rem;
+        background: #e9ecef;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    
+    .category-suggestion:hover {
+        background: #dee2e6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1>{% if item %}✏️ Edit{% else %}➕ Add New{% endif %} Checklist Item</h1>
+    <a href="{{ url_for('licensing.items_list') }}" class="btn btn-secondary">← Cancel</a>
+</div>
+
+<div class="form-card">
+    <form method="post">
+        <div class="form-group">
+            <label for="name">Name *</label>
+            <input type="text" id="name" name="name" class="form-control" required
+                   value="{{ item.name if item else '' }}"
+                   placeholder="e.g., CPR Certification">
+            <p class="form-hint">A short, descriptive name for this requirement.</p>
+        </div>
+        
+        <div class="form-group">
+            <label for="category">Category *</label>
+            <input type="text" id="category" name="category" class="form-control" required
+                   value="{{ item.category if item else '' }}"
+                   placeholder="e.g., Training">
+            <p class="form-hint">Groups similar items together.</p>
+            
+            <div class="category-suggestions">
+                <span class="text-small" style="margin-right: 0.5rem;">Common:</span>
+                <span class="category-suggestion" onclick="document.getElementById('category').value='Training'">Training</span>
+                <span class="category-suggestion" onclick="document.getElementById('category').value='Documentation'">Documentation</span>
+                <span class="category-suggestion" onclick="document.getElementById('category').value='Health'">Health</span>
+                <span class="category-suggestion" onclick="document.getElementById('category').value='Background'">Background</span>
+            </div>
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" class="form-control" rows="3"
+                      placeholder="Detailed description of what's required...">{{ item.description if item else '' }}</textarea>
+            <p class="form-hint">Optional details about this requirement.</p>
+        </div>
+        
+        <div class="form-group">
+            <label for="required_for">Required For</label>
+            <select id="required_for" name="required_for" class="form-control">
+                <option value="all" {% if item and item.required_for == 'all' %}selected{% endif %}>All Staff</option>
+                <option value="before_care" {% if item and item.required_for == 'before_care' %}selected{% endif %}>Before Care Only</option>
+                <option value="after_care" {% if item and item.required_for == 'after_care' %}selected{% endif %}>After Care Only</option>
+            </select>
+            <p class="form-hint">Which staff members need to complete this?</p>
+        </div>
+        
+        <div class="form-group">
+            <label for="sort_order">Sort Order</label>
+            <input type="number" id="sort_order" name="sort_order" class="form-control"
+                   value="{{ item.sort_order if item else '0' }}"
+                   placeholder="0">
+            <p class="form-hint">Controls display order within the category. Lower numbers appear first.</p>
+        </div>
+        
+        <div class="form-group">
+            <button type="submit" class="btn btn-success">
+                💾 {% if item %}Save Changes{% else %}Add Item{% endif %}
+            </button>
+            <a href="{{ url_for('licensing.items_list') }}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

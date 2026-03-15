@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+
+{% block extra_css %}
+<style>
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stat-card {
+        background: white;
+        padding: 1.25rem;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+    
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+    
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        margin-top: 0.25rem;
+    }
+    
+    .staff-card {
+        background: white;
+        border-radius: 8px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        border-left: 4px solid #ddd;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .staff-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .staff-card.complete {
+        border-left-color: #27ae60;
+    }
+    
+    .staff-card.incomplete {
+        border-left-color: #e74c3c;
+    }
+    
+    .staff-card.expiring {
+        border-left-color: #f39c12;
+    }
+    
+    .staff-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+    }
+    
+    .staff-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2c3e50;
+        text-decoration: none;
+    }
+    
+    .staff-name:hover {
+        color: #3498db;
+    }
+    
+    .staff-meta {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    
+    .progress-section {
+        margin-top: 0.75rem;
+    }
+    
+    .progress-info {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.85rem;
+        margin-bottom: 0.35rem;
+    }
+    
+    .incomplete-items {
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid #eee;
+    }
+    
+    .incomplete-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding: 0.25rem 0.5rem;
+        margin: 0.25rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+    }
+    
+    .incomplete-item.incomplete {
+        background: #f8d7da;
+        color: #721c24;
+    }
+    
+    .incomplete-item.expired {
+        background: #f8d7da;
+        color: #721c24;
+        font-weight: 500;
+    }
+    
+    .incomplete-item .category {
+        font-size: 0.7rem;
+        opacity: 0.8;
+    }
+    
+    .status-indicator {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+    }
+    
+    .status-indicator.valid { background: #27ae60; }
+    .status-indicator.expiring-soon { background: #f39c12; }
+    .status-indicator.expired { background: #e74c3c; }
+    
+    .filter-tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .filter-tab {
+        padding: 0.5rem 1rem;
+        border-radius: 4px;
+        text-decoration: none;
+        color: #555;
+        background: #f8f9fa;
+        font-size: 0.9rem;
+        transition: all 0.2s;
+    }
+    
+    .filter-tab:hover {
+        background: #e9ecef;
+    }
+    
+    .filter-tab.active {
+        background: #3498db;
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-header">
+    <h1>📋 Licensing Dashboard</h1>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('licensing.items_list') }}" class="btn btn-secondary">Manage Checklist Items</a>
+    </div>
+</div>
+
+<!-- Stats -->
+{% set total_staff = staff_progress|length %}
+{% set fully_complete = staff_progress|selectattr('completed', 'equalto', 'total')|list|length %}
+{% set has_expired = staff_progress|selectattr('expired', 'greaterthan', 0)|list|length %}
+{% set has_expiring = staff_progress|selectattr('expiring_soon', 'greaterthan', 0)|list|length %}
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-value">{{ total_staff }}</div>
+        <div class="stat-label">Active Staff</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ has_expired }}</div>
+        <div class="stat-label">With Expired Items</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ has_expiring }}</div>
+        <div class="stat-label">Expiring Soon (30 days)</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-value">{{ all_items|length }}</div>
+        <div class="stat-label">Total Requirements</div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-tabs">
+    <a href="{{ url_for('licensing.dashboard', filter='all') }}" class="filter-tab {% if filter_type == 'all' %}active{% endif %}">All Staff</a>
+    <a href="{{ url_for('licensing.dashboard', filter='incomplete') }}" class="filter-tab {% if filter_type == 'incomplete' %}active{% endif %}">Incomplete Only</a>
+</div>
+
+{% if categories %}
+<div class="filters">
+    <form method="get" action="{{ url_for('licensing.dashboard') }}" class="filter-group">
+        <label for="category">Filter by Category:</label>
+        <select name="category" id="category" class="form-control" style="width: auto;" onchange="this.form.submit()">
+            <option value="" {% if not category_filter %}selected{% endif %}>All Categories</option>
+            {% for cat in categories %}
+            <option value="{{ cat }}" {% if category_filter == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+        </select>
+        <input type="hidden" name="filter" value="{{ filter_type }}">
+    </form>
+</div>
+{% endif %}
+
+<!-- Staff List -->
+{% if staff_progress %}
+    {% for progress in staff_progress %}
+    <div class="staff-card {% if progress.completed == progress.total %}complete{% elif progress.expired > 0 %}incomplete{% elif progress.expiring_soon > 0 %}expiring{% endif %}">
+        <div class="staff-header">
+            <div>
+                <a href="{{ url_for('licensing.staff_checklist', staff_id=progress.staff.id) }}" class="staff-name">
+                    {{ progress.staff.full_name }}
+                </a>
+                <div class="staff-meta">
+                    {% if progress.expired > 0 %}
+                        <span class="badge badge-danger">{{ progress.expired }} expired</span>
+                    {% endif %}
+                    {% if progress.expiring_soon > 0 %}
+                        <span class="badge badge-warning">{{ progress.expiring_soon }} expiring soon</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="text-center" style="min-width: 60px;">
+                <div style="font-size: 1.25rem; font-weight: 700;">{{ progress.completed }}/{{ progress.total }}</div>
+                <div class="text-small text-muted">done</div>
+            </div>
+        </div>
+        
+        <div class="progress-section">
+            <div class="progress-info">
+                <span>{{ progress.percent_complete }}% Complete</span>
+                <span class="text-muted">{{ progress.total - progress.completed }} remaining</span>
+            </div>
+            <div class="progress">
+                <div class="progress-bar {% if progress.completed == progress.total %}success{% elif progress.expired > 0 %}danger{% elif progress.expiring_soon > 0 %}warning{% endif %}" 
+                     style="width: {{ progress.percent_complete }}%"></div>
+            </div>
+        </div>
+        
+        {% if progress.incomplete_items %}
+        <div class="incomplete-items">
+            {% for ii in progress.incomplete_items %}
+            <span class="incomplete-item {{ ii.status }}">
+                <span class="status-indicator {{ ii.status }}"></span>
+                {{ ii.item.name }}
+                <span class="category">({{ ii.item.category }})</span>
+            </span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% endfor %}
+{% else %}
+<div class="empty-state">
+    <div class="empty-state-icon">📋</div>
+    <h3>No staff found</h3>
+    <p>No active staff members match the current filters.</p>
+</div>
+{% endif %}
+{% endblock %}

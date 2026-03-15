@@ -21,7 +21,8 @@
             <div class="nav-links">
                 <a href="{{ url_for('main.index') }}" class="{% if request.endpoint == 'main.index' %}active{% endif %}">Dashboard</a>
                 <a href="{{ url_for('schedule.index') }}" class="{% if request.endpoint and 'schedule' in request.endpoint %}active{% endif %}">Schedule</a>
-                <a href="#" class="{% if request.endpoint and 'licensing' in request.endpoint %}active{% endif %}">Licensing</a>
+                <a href="{{ url_for('staff.index') }}" class="{% if request.endpoint and 'staff' in request.endpoint %}active{% endif %}">Staff</a>
+                <a href="{{ url_for('licensing.dashboard') }}" class="{% if request.endpoint and 'licensing' in request.endpoint %}active{% endif %}">Licensing</a>
                 <a href="#" class="{% if request.endpoint and 'gfs' in request.endpoint %}active{% endif %}">GFS</a>
             </div>
             

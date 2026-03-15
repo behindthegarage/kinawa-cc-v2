@@ -29,6 +29,9 @@ def create_app(config_name='default'):
     from app.routes.staff import bp as staff_bp
     app.register_blueprint(staff_bp)
     
+    from app.routes.licensing import bp as licensing_bp
+    app.register_blueprint(licensing_bp)
+    
     # Register context processors
     from datetime import datetime
     @app.context_processor
