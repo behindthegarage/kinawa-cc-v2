@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Kinawa Command Center{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block head %}{% endblock %}
+</head>
+<body>
+    <header class="site-header">
+        <nav class="main-nav">
+            <div class="nav-brand">
+                <a href="{{ url_for('main.index') }}">
+                    <span class="logo">🏫</span>
+                    <span class="brand-text">Kinawa CC v2</span>
+                </a>
+            </div>
+            
+            {% if current_user.is_authenticated %}
+            <div class="nav-links">
+                <a href="{{ url_for('main.index') }}" class="{% if request.endpoint == 'main.index' %}active{% endif %}">Dashboard</a>
+                <a href="#" class="{% if request.endpoint and 'schedule' in request.endpoint %}active{% endif %}">Schedule</a>
+                <a href="#" class="{% if request.endpoint and 'licensing' in request.endpoint %}active{% endif %}">Licensing</a>
+                <a href="#" class="{% if request.endpoint and 'gfs' in request.endpoint %}active{% endif %}">GFS</a>
+            </div>
+            
+            <div class="nav-user">
+                <span class="user-name">{{ current_user.username }}</span>
+                <a href="{{ url_for('auth.logout') }}" class="btn-logout">Logout</a>
+            </div>
+            {% endif %}
+        </nav>
+    </header>
+
+    <main class="main-content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+        
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="site-footer">
+        <p>Kinawa Command Center v2.0 &copy; 2026 Club Kinawa</p>
+    </footer>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html>

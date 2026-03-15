@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="dashboard">
+    <h1>Welcome, {{ current_user.username }}!</h1>
+    
+    <div class="dashboard-grid">
+        <div class="card">
+            <h2>📅 Staff Schedule</h2>
+            <p>View and manage weekly staff schedules.</p>
+            <a href="#" class="btn btn-primary">View Schedule</a>
+        </div>
+        
+        <div class="card">
+            <h2>📋 Licensing</h2>
+            <p>Track compliance checklists and training status.</p>
+            <a href="#" class="btn btn-primary">View Licensing</a>
+        </div>
+        
+        <div class="card">
+            <h2>🧾 GFS Reconciliation</h2>
+            <p>Upload and reconcile GFS invoices.</p>
+            <a href="#" class="btn btn-primary">GFS Tools</a>
+        </div>
+    </div>
+    
+    <div class="status-section">
+        <h2>System Status</h2>
+        <div class="status-grid">
+            <div class="status-item">
+                <span class="status-label">Database:</span>
+                <span class="status-value status-ok">✓ Connected</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Version:</span>
+                <span class="status-value">2.0.0</span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

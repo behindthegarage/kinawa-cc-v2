@@ -1,0 +1,26 @@
+# Kinawa Command Center v2 - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Flask Framework
+Flask==3.0.0
+Flask-SQLAlchemy==3.1.1
+Flask-Login==0.6.3
+Flask-Migrate==4.0.5
+Flask-WTF==1.2.1
+
+# Database
+# For local dev: SQLite (built-in)
+# For production: psycopg2-binary (requires: sudo apt-get install libpq-dev python3-dev)
+psycopg2-binary==2.9.9; sys_platform != 'linux' or platform_machine != 'aarch64'
+
+# Environment
+python-dotenv==1.0.0
+
+# Security
+Werkzeug==3.0.1
+
+# Migrations
+alembic==1.13.1
+
+# Production Server (optional, for production deployment)
+# gunicorn==21.2.0
