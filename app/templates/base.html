@@ -3,20 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4f46e5">
     <title>{% block title %}Kinawa Command Center{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    {% block extra_css %}{% endblock %}
     {% block head %}{% endblock %}
 </head>
-<body>
+<body class="{% block body_class %}{% endblock %}">
     <header class="site-header">
         <nav class="main-nav">
             <div class="nav-brand">
                 <a href="{{ url_for('main.index') }}">
-                    <span class="logo">🏫</span>
-                    <span class="brand-text">Kinawa CC v2</span>
+                    <span class="logo-wrap">
+                        <span class="logo">🏫</span>
+                    </span>
+                    <span class="brand-copy">
+                        <span class="brand-text">Kinawa CC v2</span>
+                        <span class="brand-subtitle">Operations hub for Club Kinawa</span>
+                    </span>
                 </a>
             </div>
-            
+
             {% if current_user.is_authenticated %}
             <div class="nav-links" hx-boost="false">
                 <a href="{{ url_for('main.index') }}" class="{% if request.endpoint == 'main.index' %}active{% endif %}">Dashboard</a>
@@ -25,10 +32,16 @@
                 <a href="{{ url_for('licensing.dashboard') }}" class="{% if request.endpoint and 'licensing' in request.endpoint %}active{% endif %}">Licensing</a>
                 <a href="{{ url_for('gfs.index') }}" class="{% if request.endpoint and 'gfs' in request.endpoint %}active{% endif %}">GFS</a>
             </div>
-            
+
             <div class="nav-user">
-                <span class="user-name">{{ current_user.username }}</span>
-                <a href="{{ url_for('auth.logout') }}" class="btn-logout">Logout</a>
+                <div class="user-chip">
+                    <span class="user-avatar">{{ current_user.username[:1]|upper }}</span>
+                    <span class="user-meta">
+                        <span class="user-label">Signed in</span>
+                        <span class="user-name">{{ current_user.username }}</span>
+                    </span>
+                </div>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-ghost btn-sm btn-logout">Logout</a>
             </div>
             {% endif %}
         </nav>
@@ -44,12 +57,12 @@
                 </div>
             {% endif %}
         {% endwith %}
-        
+
         {% block content %}{% endblock %}
     </main>
 
     <footer class="site-footer">
-        <p>Kinawa Command Center v2.0 &copy; 2026 Club Kinawa</p>
+        <p>Kinawa Command Center v2.0 · Thoughtful tools for staffing, licensing, and daily program flow.</p>
     </footer>
 
     {% block scripts %}{% endblock %}

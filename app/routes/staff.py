@@ -138,5 +138,6 @@ def detail(staff_id):
         'staff/detail.html',
         title=f'Staff: {staff.full_name}',
         staff=staff,
-        assignments=recent_assignments
+        assignments=recent_assignments,
+        today=today
     )

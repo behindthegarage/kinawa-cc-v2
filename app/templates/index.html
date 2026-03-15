@@ -1,41 +1,137 @@
 {% extends "base.html" %}
 
+{% block title %}Dashboard · Kinawa Command Center{% endblock %}
+
 {% block content %}
-<div class="dashboard">
-    <h1>Welcome, {{ current_user.username }}!</h1>
-    
-    <div class="dashboard-grid">
-        <div class="card">
-            <h2>📅 Staff Schedule</h2>
-            <p>View and manage weekly staff schedules.</p>
-            <a href="{{ url_for('schedule.index') }}" class="btn btn-primary">View Schedule</a>
-        </div>
-        
-        <div class="card">
-            <h2>📋 Licensing</h2>
-            <p>Track compliance checklists and training status.</p>
-            <a href="{{ url_for('licensing.dashboard') }}" class="btn btn-primary">View Licensing</a>
-        </div>
-        
-        <div class="card">
-            <h2>🧾 GFS Reconciliation</h2>
-            <p>Upload and reconcile GFS invoices.</p>
-            <a href="{{ url_for('gfs.index') }}" class="btn btn-primary">GFS Tools</a>
-        </div>
-    </div>
-    
-    <div class="status-section">
-        <h2>System Status</h2>
-        <div class="status-grid">
-            <div class="status-item">
-                <span class="status-label">Database:</span>
-                <span class="status-value status-ok">✓ Connected</span>
-            </div>
-            <div class="status-item">
-                <span class="status-label">Version:</span>
-                <span class="status-value">2.0.0</span>
+<div class="page-shell dashboard">
+    <section class="hero-panel hero-panel--dashboard">
+        <div class="hero-copy">
+            <span class="page-eyebrow">Kinawa Command Center</span>
+            <h1 class="page-title">Good to see you, {{ current_user.username }}.</h1>
+            <p class="page-subtitle">A calmer front door for the workday — scheduling, licensing, and GFS all in one place, with enough visual breathing room to feel usable instead of merely functional.</p>
+            <div class="hero-actions">
+                <a href="{{ url_for('schedule.index') }}" class="btn btn-primary">Open this week’s schedule</a>
+                <a href="{{ url_for('licensing.dashboard') }}" class="btn btn-secondary">Review licensing status</a>
             </div>
         </div>
-    </div>
+
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <span class="hero-stat-value">3</span>
+                <span class="hero-stat-label">Core workspaces</span>
+                <span class="hero-stat-note">Schedule, Licensing, and GFS</span>
+            </div>
+            <div class="hero-stat">
+                <span class="hero-stat-value">v2.0</span>
+                <span class="hero-stat-label">Current build</span>
+                <span class="hero-stat-note">Modernized and ready to work</span>
+            </div>
+            <div class="hero-stat">
+                <span class="hero-stat-value">✓</span>
+                <span class="hero-stat-label">System health</span>
+                <span class="hero-stat-note">Database connected</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="module-grid">
+        <a href="{{ url_for('schedule.index') }}" class="module-card schedule">
+            <div class="module-card-header">
+                <div>
+                    <div class="module-icon">📅</div>
+                </div>
+                <span class="chip">Weekly planning</span>
+            </div>
+            <div>
+                <h2 class="module-title">Staff Schedule</h2>
+                <p class="module-description">See the full week at a glance, add people fast, and keep posting-ready schedules clean and readable.</p>
+            </div>
+            <ul class="module-list">
+                <li>Before-care and after-care coverage in one grid</li>
+                <li>Inline assignment with HTMX-powered modals</li>
+                <li>Print-friendly view for posting on site</li>
+            </ul>
+            <div class="module-footer">
+                <span class="hero-stat-note">Coverage, clarity, fewer clicks</span>
+                <span class="page-link">Open schedule →</span>
+            </div>
+        </a>
+
+        <a href="{{ url_for('licensing.dashboard') }}" class="module-card licensing">
+            <div class="module-card-header">
+                <div>
+                    <div class="module-icon">📋</div>
+                </div>
+                <span class="chip">Compliance pulse</span>
+            </div>
+            <div>
+                <h2 class="module-title">Licensing</h2>
+                <p class="module-description">Track expiring items, spot gaps instantly, and move from dashboard overview into staff-level detail without losing context.</p>
+            </div>
+            <ul class="module-list">
+                <li>Visual progress bars and status badges</li>
+                <li>Staff-by-staff checklist drill-downs</li>
+                <li>Cleaner triage for expired and incomplete items</li>
+            </ul>
+            <div class="module-footer">
+                <span class="hero-stat-note">Compliance with less squinting</span>
+                <span class="page-link">Open licensing →</span>
+            </div>
+        </a>
+
+        <a href="{{ url_for('gfs.index') }}" class="module-card gfs">
+            <div class="module-card-header">
+                <div>
+                    <div class="module-icon">🧾</div>
+                </div>
+                <span class="chip">Reconciliation flow</span>
+            </div>
+            <div>
+                <h2 class="module-title">GFS Tools</h2>
+                <p class="module-description">Upload invoices, review allocations, and keep the reimbursement workflow moving without hunting around the interface.</p>
+            </div>
+            <ul class="module-list">
+                <li>Guided upload and review flow</li>
+                <li>Clear status states for pending and approved items</li>
+                <li>Consistent styling with the rest of the command center</li>
+            </ul>
+            <div class="module-footer">
+                <span class="hero-stat-note">From CSV to finished report</span>
+                <span class="page-link">Open GFS →</span>
+            </div>
+        </a>
+    </section>
+
+    <section class="panel dashboard-overview">
+        <div class="panel-header">
+            <div>
+                <h2 class="panel-title">System pulse</h2>
+                <p class="panel-subtitle">The essentials, without the sterile dashboard energy.</p>
+            </div>
+        </div>
+
+        <div class="summary-grid">
+            <div class="summary-card">
+                <span class="metric-value">Connected</span>
+                <span class="metric-label">Database</span>
+                <span class="metric-note">Healthy and responding</span>
+            </div>
+            <div class="summary-card">
+                <span class="metric-value">Responsive</span>
+                <span class="metric-label">Layout</span>
+                <span class="metric-note">Mobile-friendly spacing and navigation</span>
+            </div>
+            <div class="summary-card">
+                <span class="metric-value">HTMX</span>
+                <span class="metric-label">Interaction layer</span>
+                <span class="metric-note">Modal flows and partial updates still intact</span>
+            </div>
+            <div class="summary-card">
+                <span class="metric-value">Ready</span>
+                <span class="metric-label">Workday status</span>
+                <span class="metric-note">Open a module and keep moving</span>
+            </div>
+        </div>
+    </section>
 </div>
 {% endblock %}

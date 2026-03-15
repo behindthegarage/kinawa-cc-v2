@@ -1,34 +1,37 @@
 {% extends "base.html" %}
 
-{% block title %}Login - Kinawa Command Center{% endblock %}
+{% block title %}Login · Kinawa Command Center{% endblock %}
 
 {% block content %}
 <div class="login-container">
     <div class="login-card">
-        <h1>🏫 Kinawa CC v2</h1>
-        <p class="login-subtitle">Please sign in to continue</p>
-        
+        <div class="hero-copy">
+            <span class="page-eyebrow">Welcome back</span>
+            <h1>Kinawa CC v2</h1>
+            <p class="login-subtitle">A friendlier front door for the admin work behind Club Kinawa.</p>
+        </div>
+
         <form method="POST" action="{{ url_for('auth.login') }}" class="login-form">
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" required autofocus>
             </div>
-            
+
             <div class="form-group">
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" required>
             </div>
-            
+
             <div class="form-group checkbox">
                 <label>
                     <input type="checkbox" name="remember" value="1">
-                    Remember me
+                    Keep me signed in
                 </label>
             </div>
-            
+
             <input type="hidden" name="next" value="{{ request.args.get('next', '') }}">
-            
-            <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+
+            <button type="submit" class="btn btn-primary btn-block">Sign in</button>
         </form>
     </div>
 </div>

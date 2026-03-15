@@ -1,42 +1,51 @@
 {% extends "base.html" %}
 
+{% block title %}{{ title }} · Kinawa Command Center{% endblock %}
+
 {% block content %}
-<div class="staff-form-container">
-    <div class="form-header">
-        <h1>{{ title }}</h1>
-        <a href="{{ url_for('staff.index') }}" class="btn btn-secondary">← Back to Staff List</a>
+<div class="page-shell staff-form-container">
+    <div class="page-header">
+        <div class="page-header-content">
+            <span class="page-eyebrow">Roster details</span>
+            <h1 class="page-title">{{ title }}</h1>
+            <p class="page-subtitle">A small form, but it should still feel pleasant to use. Miracles happen.</p>
+        </div>
+        <div class="page-actions">
+            <a href="{{ url_for('staff.index') }}" class="btn btn-secondary">← Back to staff list</a>
+        </div>
     </div>
 
-    <form method="POST" class="staff-form">
-        <div class="form-group">
-            <label for="full_name">Full Name *</label>
-            <input type="text" id="full_name" name="full_name" value="{{ staff.full_name if staff else '' }}" required autofocus
-                   placeholder="e.g., John Smith">
-        </div>
+    <form method="POST" class="staff-form form-card">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="full_name">Full name *</label>
+                <input type="text" id="full_name" name="full_name" value="{{ staff.full_name if staff else '' }}" required autofocus placeholder="e.g., Jordan Smith">
+            </div>
 
-        <div class="form-group">
-            <label for="hire_date">Hire Date</label>
-            <input type="date" id="hire_date" name="hire_date" value="{{ staff.hire_date.strftime('%Y-%m-%d') if staff and staff.hire_date else '' }}">
-            <span class="form-hint">Optional — when did this person start?</span>
+            <div class="form-group">
+                <label for="hire_date">Hire date</label>
+                <input type="date" id="hire_date" name="hire_date" value="{{ staff.hire_date.strftime('%Y-%m-%d') if staff and staff.hire_date else '' }}">
+                <span class="form-hint">Optional — useful context when reviewing tenure and records.</span>
+            </div>
         </div>
 
         <div class="form-group">
             <label for="notes">Notes</label>
-            <textarea id="notes" name="notes" rows="4" placeholder="Any additional information about this staff member...">{{ staff.notes if staff else '' }}</textarea>
+            <textarea id="notes" name="notes" rows="5" placeholder="Availability, strengths, reminders, or anything else worth keeping handy...">{{ staff.notes if staff else '' }}</textarea>
         </div>
 
         {% if staff %}
         <div class="form-group checkbox">
             <label>
                 <input type="checkbox" name="active" {{ 'checked' if staff.active else '' }}>
-                Active (available for scheduling)
+                Active and available for scheduling
             </label>
         </div>
         {% endif %}
 
         <div class="form-actions">
             <a href="{{ url_for('staff.index') }}" class="btn btn-secondary">Cancel</a>
-            <button type="submit" class="btn btn-primary">{% if staff %}Save Changes{% else %}Add Staff Member{% endif %}</button>
+            <button type="submit" class="btn btn-primary">{% if staff %}Save changes{% else %}Add staff member{% endif %}</button>
         </div>
     </form>
 </div>

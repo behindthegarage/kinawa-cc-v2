@@ -80,7 +80,8 @@ def index():
         prev_week=week_offset - 1,
         next_week=week_offset + 1,
         staff_list=staff_list,
-        schedule_grid=schedule_grid
+        schedule_grid=schedule_grid,
+        today=base_date
     )
 
 
@@ -156,9 +157,25 @@ def assign(assignment_id=None):
         db.session.commit()
         
         if request.headers.get('HX-Request'):
-            staff = Staff.query.get(staff_id)
-            return render_template('schedule/_assignment_cell.html', 
-                                   assignment=assignment, staff=staff)
+            slot_assignments = ScheduleAssignment.query.filter_by(
+                date=date,
+                shift_type=shift_type
+            ).order_by(ScheduleAssignment.id).all()
+
+            assignments_data = [
+                {
+                    'id': item.id,
+                    'staff_name': item.staff.full_name if item.staff else 'Unknown'
+                }
+                for item in slot_assignments
+            ]
+
+            return render_template(
+                'schedule/_assignment_cell.html',
+                assignments=assignments_data,
+                date=date_str,
+                shift_type=shift_type
+            )
         
         flash('Assignment saved successfully', 'success')
         return redirect(url_for('schedule.index'))
@@ -194,10 +211,29 @@ def delete_assignment(assignment_id):
     db.session.commit()
     
     if request.headers.get('HX-Request'):
-        date_str = request.args.get('date', assignment.date.strftime('%Y-%m-%d'))
-        shift_type = request.args.get('shift_type', assignment.shift_type)
-        return render_template('schedule/_empty_cell.html', 
-                               date=date_str, shift_type=shift_type)
+        date_str = request.form.get('date') or request.args.get('date') or assignment.date.strftime('%Y-%m-%d')
+        shift_type = request.form.get('shift_type') or request.args.get('shift_type') or assignment.shift_type
+
+        date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        remaining_assignments = ScheduleAssignment.query.filter_by(
+            date=date,
+            shift_type=shift_type
+        ).order_by(ScheduleAssignment.id).all()
+
+        assignments_data = [
+            {
+                'id': item.id,
+                'staff_name': item.staff.full_name if item.staff else 'Unknown'
+            }
+            for item in remaining_assignments
+        ]
+
+        return render_template(
+            'schedule/_assignment_cell.html',
+            assignments=assignments_data,
+            date=date_str,
+            shift_type=shift_type
+        )
     
     flash('Assignment removed', 'success')
     return redirect(url_for('schedule.index'))

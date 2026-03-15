@@ -1,17 +1,36 @@
 {% extends "base.html" %}
 
+{% block title %}{{ staff.full_name }} · Staff · Kinawa Command Center{% endblock %}
+
 {% block content %}
-<div class="staff-detail-container">
-    <div class="staff-detail-header">
-        <h1>{{ staff.full_name }}</h1>
-        <span class="status-badge {{ 'active' if staff.active else 'inactive' }}">
-            {{ 'Active' if staff.active else 'Inactive' }}
-        </span>
-    </div>
+<div class="page-shell staff-detail-container">
+    <section class="hero-panel">
+        <div class="hero-copy">
+            <span class="page-eyebrow">Staff profile</span>
+            <h1 class="page-title">{{ staff.full_name }}</h1>
+            <p class="page-subtitle">A clearer view of roster details and recent schedule context, without burying useful information in a wall of text.</p>
+            <div class="pill-nav">
+                <span class="status-badge {{ 'active' if staff.active else 'inactive' }}">{{ 'Active' if staff.active else 'Inactive' }}</span>
+            </div>
+        </div>
+
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <span class="hero-stat-value">{{ assignments|length }}</span>
+                <span class="hero-stat-label">Recent assignments</span>
+                <span class="hero-stat-note">Across the last and next 30 days</span>
+            </div>
+            <div class="hero-stat">
+                <span class="hero-stat-value">{{ staff.hire_date.strftime('%Y') if staff.hire_date else '—' }}</span>
+                <span class="hero-stat-label">Hire year</span>
+                <span class="hero-stat-note">{{ 'On file' if staff.hire_date else 'Not recorded yet' }}</span>
+            </div>
+        </div>
+    </section>
 
     <div class="staff-info-grid">
         <div class="info-card">
-            <h3>Staff Information</h3>
+            <h3>Staff information</h3>
             <dl>
                 <dt>Hire Date</dt>
                 <dd>
@@ -21,14 +40,14 @@
                         <span class="not-set">Not set</span>
                     {% endif %}
                 </dd>
-                
+
                 <dt>Created</dt>
                 <dd>{{ staff.created_at.strftime('%B %d, %Y') if staff.created_at else 'Unknown' }}</dd>
-                
-                <dt>Last Updated</dt>
+
+                <dt>Updated</dt>
                 <dd>{{ staff.updated_at.strftime('%B %d, %Y at %I:%M %p') if staff.updated_at else 'Unknown' }}</dd>
             </dl>
-            
+
             {% if staff.notes %}
             <div class="staff-notes">
                 <h4>Notes</h4>
@@ -38,7 +57,7 @@
         </div>
 
         <div class="info-card">
-            <h3>Recent Schedule (±30 days)</h3>
+            <h3>Recent schedule window</h3>
             {% if assignments %}
             <ul class="assignment-list">
                 {% for assignment in assignments %}
@@ -51,19 +70,23 @@
                 {% endfor %}
             </ul>
             {% else %}
-            <p class="empty-state">No schedule assignments in the past or next 30 days.</p>
+            <div class="empty-state">
+                <div class="empty-state-icon">🗓️</div>
+                <h3>No recent assignments</h3>
+                <p>Nothing scheduled in the ±30 day window yet.</p>
+            </div>
             {% endif %}
         </div>
     </div>
 
     <div class="staff-detail-actions">
-        <a href="{{ url_for('staff.edit', staff_id=staff.id) }}" class="btn btn-primary">Edit Staff</a>
+        <a href="{{ url_for('staff.edit', staff_id=staff.id) }}" class="btn btn-primary">Edit staff</a>
         <form method="POST" action="{{ url_for('staff.toggle_active', staff_id=staff.id) }}" class="inline-form">
             <button type="submit" class="btn {{ 'btn-warning' if staff.active else 'btn-success' }}">
                 {{ 'Deactivate' if staff.active else 'Activate' }}
             </button>
         </form>
-        <a href="{{ url_for('staff.index') }}" class="btn btn-secondary">← Back to Staff List</a>
+        <a href="{{ url_for('staff.index') }}" class="btn btn-secondary">← Back to staff list</a>
     </div>
 </div>
 {% endblock %}

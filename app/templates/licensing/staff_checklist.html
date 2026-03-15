@@ -1,312 +1,152 @@
 {% extends "base.html" %}
 
-{% block extra_css %}
-<style>
-    .staff-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 1.5rem;
-    }
-    
-    .staff-info h1 {
-        margin-bottom: 0.25rem;
-    }
-    
-    .staff-meta {
-        color: #6c757d;
-        font-size: 0.9rem;
-    }
-    
-    .checklist-item {
-        background: white;
-        border-radius: 8px;
-        padding: 1.25rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        border-left: 4px solid #ddd;
-    }
-    
-    .checklist-item.valid {
-        border-left-color: #27ae60;
-    }
-    
-    .checklist-item.expiring-soon {
-        border-left-color: #f39c12;
-    }
-    
-    .checklist-item.expired {
-        border-left-color: #e74c3c;
-    }
-    
-    .checklist-item.incomplete {
-        border-left-color: #95a5a6;
-    }
-    
-    .item-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: 0.75rem;
-    }
-    
-    .item-title {
-        font-weight: 600;
-        color: #2c3e50;
-    }
-    
-    .item-category {
-        display: inline-block;
-        font-size: 0.75rem;
-        padding: 0.15rem 0.5rem;
-        background: #e9ecef;
-        color: #495057;
-        border-radius: 12px;
-        margin-left: 0.5rem;
-    }
-    
-    .item-description {
-        color: #6c757d;
-        font-size: 0.9rem;
-        margin-bottom: 0.75rem;
-    }
-    
-    .item-status {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 0.75rem;
-        border-radius: 4px;
-        font-size: 0.85rem;
-        font-weight: 500;
-    }
-    
-    .item-status.valid {
-        background: #d4edda;
-        color: #155724;
-    }
-    
-    .item-status.expiring-soon {
-        background: #fff3cd;
-        color: #856404;
-    }
-    
-    .item-status.expired {
-        background: #f8d7da;
-        color: #721c24;
-    }
-    
-    .item-status.incomplete {
-        background: #e9ecef;
-        color: #495057;
-    }
-    
-    .completion-details {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 6px;
-        margin-top: 0.75rem;
-    }
-    
-    .completion-row {
-        display: flex;
-        gap: 2rem;
-        flex-wrap: wrap;
-    }
-    
-    .completion-field {
-        font-size: 0.9rem;
-    }
-    
-    .completion-field label {
-        display: block;
-        font-size: 0.8rem;
-        color: #6c757d;
-        margin-bottom: 0.1rem;
-    }
-    
-    .completion-field .value {
-        font-weight: 500;
-    }
-    
-    .evidence-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        color: #3498db;
-        text-decoration: none;
-    }
-    
-    .evidence-link:hover {
-        text-decoration: underline;
-    }
-    
-    .item-actions {
-        display: flex;
-        gap: 0.5rem;
-        margin-top: 0.75rem;
-    }
-    
-    .progress-summary {
-        background: white;
-        padding: 1rem 1.25rem;
-        border-radius: 8px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        margin-bottom: 1.5rem;
-        display: flex;
-        gap: 2rem;
-        flex-wrap: wrap;
-    }
-    
-    .progress-stat {
-        text-align: center;
-    }
-    
-    .progress-stat .value {
-        font-size: 1.5rem;
-        font-weight: 700;
-    }
-    
-    .progress-stat .value.complete { color: #27ae60; }
-    .progress-stat .value.incomplete { color: #95a5a6; }
-    .progress-stat .value.expired { color: #e74c3c; }
-    
-    .progress-stat .label {
-        font-size: 0.8rem;
-        color: #6c757d;
-    }
-</style>
-{% endblock %}
+{% block title %}{{ staff.full_name }} · Licensing · Kinawa Command Center{% endblock %}
 
 {% block content %}
-<div class="staff-header">
-    <div class="staff-info">
-        <h1>📋 {{ staff.full_name }}</h1>
-        <div class="staff-meta">
-            {% if staff.hire_date %}
-                Hired: {{ staff.hire_date.strftime('%B %d, %Y') }}
-            {% endif %}
-            {% if staff.notes %}
-                <span class="text-muted">| {{ staff.notes[:100] }}{% if staff.notes|length > 100 %}...{% endif %}</span>
-            {% endif %}
-        </div>
-    </div>
-    <a href="{{ url_for('licensing.dashboard') }}" class="btn btn-secondary">← Back to Dashboard</a>
-</div>
-
-<!-- Progress Summary -->
 {% set completed_count = checklist_data|selectattr('status', 'equalto', 'valid')|list|length %}
 {% set expiring_count = checklist_data|selectattr('status', 'equalto', 'expiring-soon')|list|length %}
 {% set expired_count = checklist_data|selectattr('status', 'equalto', 'expired')|list|length %}
 {% set incomplete_count = checklist_data|selectattr('status', 'equalto', 'incomplete')|list|length %}
 
-<div class="progress-summary">
-    <div class="progress-stat">
-        <div class="value complete">{{ completed_count }}</div>
-        <div class="label">Valid</div>
-    </div>
-    <div class="progress-stat">
-        <div class="value incomplete">{{ incomplete_count }}</div>
-        <div class="label">Incomplete</div>
-    </div>
-    <div class="progress-stat">
-        <div class="value" style="color: #f39c12;">{{ expiring_count }}</div>
-        <div class="label">Expiring Soon</div>
-    </div>
-    <div class="progress-stat">
-        <div class="value expired">{{ expired_count }}</div>
-        <div class="label">Expired</div>
-    </div>
-</div>
-
-<!-- Checklist Items -->
-{% for data in checklist_data %}
-<div class="checklist-item {{ data.status }}">
-    <div class="item-header">
-        <div>
-            <span class="item-title">{{ data.item.name }}</span>
-            <span class="item-category">{{ data.item.category }}</span>
-        </div>
-        <div class="item-status {{ data.status }}">
-            {% if data.status == 'valid' %}
-                ✅ Complete
-            {% elif data.status == 'expiring-soon' %}
-                ⚠️ Expires Soon
-            {% elif data.status == 'expired' %}
-                ❌ Expired
-            {% else %}
-                ⏳ Incomplete
-            {% endif %}
-        </div>
-    </div>
-    
-    {% if data.item.description %}
-    <div class="item-description">{{ data.item.description }}</div>
-    {% endif %}
-    
-    {% if data.completion %}
-    <div class="completion-details">
-        <div class="completion-row">
-            <div class="completion-field">
-                <label>Completed</label>
-                <div class="value">{{ data.completion.completed_at.strftime('%b %d, %Y') }}</div>
+<div class="page-shell licensing-checklist">
+    <section class="hero-panel">
+        <div class="hero-copy">
+            <span class="page-eyebrow">Staff compliance</span>
+            <h1 class="page-title">{{ staff.full_name }}</h1>
+            <p class="page-subtitle">
+                {% if staff.hire_date %}
+                    Hired {{ staff.hire_date.strftime('%B %d, %Y') }}.
+                {% else %}
+                    Hire date not yet recorded.
+                {% endif %}
+                {% if staff.notes %}
+                    {{ staff.notes[:120] }}{% if staff.notes|length > 120 %}…{% endif %}
+                {% endif %}
+            </p>
+            <div class="page-actions">
+                <a href="{{ url_for('licensing.dashboard') }}" class="btn btn-secondary">← Back to dashboard</a>
             </div>
-            
-            {% if data.completion.expires_at %}
-            <div class="completion-field">
-                <label>Expires</label>
-                <div class="value {% if data.completion.is_expired() %}text-danger{% elif data.completion.is_expiring_soon() %}text-warning{% endif %}">
-                    {{ data.completion.expires_at.strftime('%b %d, %Y') }}
-                    {% if data.completion.is_expired() %}
-                        <span class="badge badge-danger">EXPIRED</span>
-                    {% elif data.completion.is_expiring_soon() %}
-                        <span class="badge badge-warning">{{ ((data.completion.expires_at - now()).days) }} days left</span>
+        </div>
+
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <span class="hero-stat-value">{{ completed_count }}</span>
+                <span class="hero-stat-label">Valid</span>
+                <span class="hero-stat-note">Current and in good standing</span>
+            </div>
+            <div class="hero-stat">
+                <span class="hero-stat-value">{{ incomplete_count }}</span>
+                <span class="hero-stat-label">Incomplete</span>
+                <span class="hero-stat-note">No completion recorded</span>
+            </div>
+            <div class="hero-stat">
+                <span class="hero-stat-value">{{ expired_count }}</span>
+                <span class="hero-stat-label">Expired</span>
+                <span class="hero-stat-note">Immediate follow-up needed</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="progress-summary">
+        <div class="progress-stat">
+            <div class="value complete">{{ completed_count }}</div>
+            <div class="label">Valid</div>
+        </div>
+        <div class="progress-stat">
+            <div class="value incomplete">{{ incomplete_count }}</div>
+            <div class="label">Incomplete</div>
+        </div>
+        <div class="progress-stat">
+            <div class="value" style="color: #b45309;">{{ expiring_count }}</div>
+            <div class="label">Expiring soon</div>
+        </div>
+        <div class="progress-stat">
+            <div class="value expired">{{ expired_count }}</div>
+            <div class="label">Expired</div>
+        </div>
+    </section>
+
+    <section class="checklist-grid">
+        {% for data in checklist_data %}
+        <article class="checklist-item {{ data.status }}">
+            <div class="item-header">
+                <div>
+                    <div class="item-title">{{ data.item.name }}</div>
+                    <div class="pill-nav">
+                        <span class="item-category">{{ data.item.category }}</span>
+                    </div>
+                </div>
+                <div class="item-status {{ data.status }}">
+                    {% if data.status == 'valid' %}
+                        ✅ Complete
+                    {% elif data.status == 'expiring-soon' %}
+                        ⚠️ Expires soon
+                    {% elif data.status == 'expired' %}
+                        ❌ Expired
+                    {% else %}
+                        ⏳ Incomplete
                     {% endif %}
                 </div>
             </div>
+
+            {% if data.item.description %}
+            <div class="item-description">{{ data.item.description }}</div>
             {% endif %}
-            
-            {% if data.completion.evidence_url %}
-            <div class="completion-field">
-                <label>Evidence</label>
-                <div class="value">
-                    <a href="{{ url_for('licensing.view_evidence', filename=data.completion.evidence_url.split('/')|last) }}" 
-                       class="evidence-link" target="_blank">
-                        📄 View Document
-                    </a>
-                    <a href="{{ url_for('licensing.download_evidence', filename=data.completion.evidence_url.split('/')|last) }}" 
-                       class="evidence-link">
-                        ⬇️ Download
-                    </a>
+
+            {% if data.completion %}
+            <div class="completion-details">
+                <div class="completion-row">
+                    <div class="completion-field">
+                        <label>Completed</label>
+                        <div class="value">{{ data.completion.completed_at.strftime('%b %d, %Y') }}</div>
+                    </div>
+
+                    {% if data.completion.expires_at %}
+                    <div class="completion-field">
+                        <label>Expires</label>
+                        <div class="value {% if data.completion.is_expired() %}text-danger{% elif data.completion.is_expiring_soon() %}text-warning{% endif %}">
+                            {{ data.completion.expires_at.strftime('%b %d, %Y') }}
+                            {% if data.completion.is_expired() %}
+                                <span class="badge badge-danger">Expired</span>
+                            {% elif data.completion.is_expiring_soon() %}
+                                <span class="badge badge-warning">{{ ((data.completion.expires_at - now()).days) }} days left</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if data.completion.evidence_url %}
+                    <div class="completion-field">
+                        <label>Evidence</label>
+                        <div class="value">
+                            <a href="{{ url_for('licensing.view_evidence', filename=data.completion.evidence_url.split('/')|last) }}" class="evidence-link" target="_blank">📄 View document</a>
+                            <a href="{{ url_for('licensing.download_evidence', filename=data.completion.evidence_url.split('/')|last) }}" class="evidence-link">⬇️ Download</a>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
+
+                {% if data.completion.notes %}
+                <div class="completion-field">
+                    <label>Notes</label>
+                    <div class="value">{{ data.completion.notes }}</div>
+                </div>
+                {% endif %}
             </div>
             {% endif %}
-        </div>
-        
-        {% if data.completion.notes %}
-        <div class="completion-field" style="margin-top: 0.75rem;">
-            <label>Notes</label>
-            <div class="value">{{ data.completion.notes }}</div>
-        </div>
-        {% endif %}
-    </div>
-    {% endif %}
-    
-    <div class="item-actions">
-        {% if data.completion %}
-            <a href="{{ url_for('licensing.complete_item', staff_id=staff.id, item_id=data.item.id) }}" class="btn btn-sm btn-secondary">
-                ✏️ Edit
-            </a>
-            <form method="post" action="{{ url_for('licensing.uncomplete_item', staff_id=staff.id, item_id=data.item.id) }}" style="display: inline;"
-                  onsubmit="return confirm('Are you sure you want to mark this as incomplete? This will delete the completion record and any uploaded evidence.');">
-                <button type="submit" class="btn btn-sm btn-danger">Mark Incomplete</button>
-            </form>
-        {% else %}
-            <a href="{{ url_for('licensing.complete_item', staff_id=staff.id, item_id=data.item.id) }}" class="btn btn-sm btn-success">
-                ✓ Mark Complete
-            </a>
-        {% endif %}
-    </div>
+
+            <div class="item-actions">
+                {% if data.completion %}
+                    <a href="{{ url_for('licensing.complete_item', staff_id=staff.id, item_id=data.item.id) }}" class="btn btn-sm btn-secondary">✏️ Edit</a>
+                    <form method="post" action="{{ url_for('licensing.uncomplete_item', staff_id=staff.id, item_id=data.item.id) }}" class="inline-form" onsubmit="return confirm('Are you sure you want to mark this as incomplete? This will delete the completion record and any uploaded evidence.');">
+                        <button type="submit" class="btn btn-sm btn-danger">Mark incomplete</button>
+                    </form>
+                {% else %}
+                    <a href="{{ url_for('licensing.complete_item', staff_id=staff.id, item_id=data.item.id) }}" class="btn btn-sm btn-primary">✓ Mark complete</a>
+                {% endif %}
+            </div>
+        </article>
+        {% endfor %}
+    </section>
 </div>
-{% endfor %}
 {% endblock %}
