@@ -1,0 +1,395 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="gfs-container">
+    <div class="gfs-header">
+        <h1>Review Reconciliation</h1>
+        <p class="subtitle">
+            Invoice: <strong>{{ rec.invoice_number }}</strong>
+            {% if rec.invoice_date %}
+            | Date: {{ rec.invoice_date.strftime('%m/%d/%Y') }}
+            {% endif %}
+            | Status: <span class="status-badge {{ rec.status }}">{{ rec.status|title }}</span>
+        </p>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="card">
+            <div class="card-label">Total Amount</div>
+            <div class="card-value">${{ "%.2f"|format(total) }}</div>
+        </div>
+        <div class="card card-sa">
+            <div class="card-label">School Age (67%)</div>
+            <div class="card-value">${{ "%.2f"|format(sa_total) }}</div>
+            <div class="card-account">{{ sa_account }}</div>
+        </div>
+        <div class="card card-gsrp">
+            <div class="card-label">GSRP (33%)</div>
+            <div class="card-value">${{ "%.2f"|format(gsrp_total) }}</div>
+            <div class="card-account">{{ gsrp_account }}</div>
+        </div>
+        <div class="card">
+            <div class="card-label">Disposables</div>
+            <div class="card-value">{{ disposable_count }}</div>
+            <div class="card-account">items marked</div>
+        </div>
+    </div>
+
+    <!-- Instructions -->
+    {% if rec.status == 'pending' %}
+    <div class="instructions alert alert-info">
+        <strong>Instructions:</strong> Review each item below. Click <strong>"Mark as Disposable"</strong> 
+        for items like napkins, cups, plates, etc. These will be allocated 100% to School Age instead of the 67/33 split.
+    </div>
+    {% endif %}
+
+    <!-- Line Items Table -->
+    <div class="items-section">
+        <h3>Line Items ({{ items|length }})</h3>
+        
+        <table class="items-table">
+            <thead>
+                <tr>
+                    <th>Qty</th>
+                    <th>Description</th>
+                    <th>Unit Price</th>
+                    <th>Extended</th>
+                    <th>SA Allocation</th>
+                    <th>GSRP Allocation</th>
+                    <th>Type</th>
+                    {% if rec.status == 'pending' %}
+                    <th>Action</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr class="{{ 'disposable-row' if item.is_disposable else '' }}">
+                    <td>{{ item.qty }}</td>
+                    <td class="description">
+                        {{ item.description }}
+                        {% if item.item_number %}
+                        <span class="item-number">#{{ item.item_number }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="numeric">${{ "%.2f"|format(item.unit_price) }}</td>
+                    <td class="numeric">${{ "%.2f"|format(item.extended) }}</td>
+                    <td class="numeric">${{ "%.2f"|format(item.sa_allocation) }}</td>
+                    <td class="numeric">${{ "%.2f"|format(item.gsrp_allocation) }}</td>
+                    <td>
+                        {% if item.is_disposable %}
+                        <span class="type-badge disposable">Disposable</span>
+                        {% else %}
+                        <span class="type-badge food">Food</span>
+                        {% endif %}
+                    </td>
+                    {% if rec.status == 'pending' %}
+                    <td>
+                        <form method="POST" action="{{ url_for('gfs.toggle_disposable', rec_id=rec.id, item_index=loop.index0) }}" class="inline-form">
+                            {% if item.is_disposable %}
+                            <button type="submit" class="btn btn-sm btn-secondary">Mark as Food</button>
+                            {% else %}
+                            <button type="submit" class="btn btn-sm btn-warning">Mark as Disposable</button>
+                            {% endif %}
+                        </form>
+                    </td>
+                    {% endif %}
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="total-row">
+                    <td colspan="3" class="text-right"><strong>Totals:</strong></td>
+                    <td class="numeric"><strong>${{ "%.2f"|format(total) }}</strong></td>
+                    <td class="numeric"><strong>${{ "%.2f"|format(sa_total) }}</strong></td>
+                    <td class="numeric"><strong>${{ "%.2f"|format(gsrp_total) }}</strong></td>
+                    <td colspan="{{ 3 if rec.status == 'pending' else 2 }}"></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <!-- Action Buttons -->
+    {% if rec.status == 'pending' %}
+    <div class="actions-section">
+        <h3>Approve Reconciliation</h3>
+        
+        <form method="POST" action="{{ url_for('gfs.approve', rec_id=rec.id) }}" class="approve-form">
+            <div class="form-group">
+                <label for="email_to">Email report to:</label>
+                <input type="email" name="email_to" id="email_to" value="adam.brussow@okemosk12.net" required>
+            </div>
+            
+            <p class="confirm-text">
+                This will generate a PDF report and email it to the address above.
+                The reconciliation will be marked as <strong>approved</strong>.
+            </p>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-success btn-lg">
+                    ✅ Approve & Send Report
+                </button>
+            </div>
+        </form>
+
+        <hr class="divider">
+
+        <form method="POST" action="{{ url_for('gfs.reject', rec_id=rec.id) }}" class="reject-form">
+            <p class="confirm-text">If this reconciliation is incorrect, you can reject it.</p>
+            <div class="form-actions">
+                <button type="submit" class="btn btn-danger" onclick="return confirm('Are you sure you want to reject this reconciliation?')">
+                    ❌ Reject
+                </button>
+            </div>
+        </form>
+    </div>
+    {% else %}
+    <div class="actions-section">
+        <h3>Reconciliation Complete</h3>
+        
+        {% if rec.status == 'approved' %}
+        <p>This reconciliation was approved on {{ rec.approved_at.strftime('%m/%d/%Y at %H:%M') }} by {{ rec.approved_by }}.</p>
+        
+        {% if rec.pdf_path %}
+        <a href="{{ url_for('gfs.download_pdf', rec_id=rec.id) }}" class="btn btn-primary">
+            📄 Download PDF Report
+        </a>
+        {% endif %}
+        {% elif rec.status == 'rejected' %}
+        <p>This reconciliation was rejected.</p>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="nav-actions">
+        <a href="{{ url_for('gfs.index') }}" class="btn btn-secondary">← Back to Upload</a>
+        <a href="{{ url_for('gfs.history') }}" class="btn btn-secondary">View History →</a>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+.gfs-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.gfs-header {
+    margin-bottom: 25px;
+}
+
+.gfs-header h1 {
+    color: #1a5276;
+    margin-bottom: 5px;
+}
+
+.gfs-header .subtitle {
+    color: #666;
+    margin: 0;
+}
+
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+.status-badge.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-badge.approved {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-badge.rejected {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+}
+
+.card-sa {
+    border-left: 4px solid #1a5276;
+}
+
+.card-gsrp {
+    border-left: 4px solid #5dade2;
+}
+
+.card-label {
+    font-size: 0.85em;
+    color: #666;
+    margin-bottom: 8px;
+}
+
+.card-value {
+    font-size: 1.8em;
+    font-weight: 600;
+    color: #1a5276;
+    font-family: monospace;
+}
+
+.card-account {
+    font-size: 0.8em;
+    color: #999;
+    margin-top: 5px;
+    font-family: monospace;
+}
+
+.instructions {
+    margin-bottom: 25px;
+}
+
+.items-section {
+    margin-bottom: 30px;
+}
+
+.items-section h3 {
+    color: #1a5276;
+    border-bottom: 2px solid #1a5276;
+    padding-bottom: 10px;
+}
+
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9em;
+}
+
+.items-table th {
+    background: #1a5276;
+    color: white;
+    padding: 12px;
+    text-align: left;
+}
+
+.items-table td {
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
+}
+
+.items-table tr:hover {
+    background: #f5f5f5;
+}
+
+.items-table tr.disposable-row {
+    background: #fff8e1;
+}
+
+.items-table .description {
+    max-width: 300px;
+}
+
+.item-number {
+    font-size: 0.8em;
+    color: #999;
+    margin-left: 5px;
+}
+
+.numeric {
+    text-align: right;
+    font-family: monospace;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.total-row {
+    background: #e8f4f8 !important;
+    border-top: 2px solid #1a5276;
+}
+
+.type-badge {
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: 500;
+}
+
+.type-badge.food {
+    background: #d4edda;
+    color: #155724;
+}
+
+.type-badge.disposable {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.actions-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 25px;
+    margin-bottom: 25px;
+}
+
+.actions-section h3 {
+    color: #1a5276;
+    margin-top: 0;
+}
+
+.approve-form, .reject-form {
+    margin-top: 20px;
+}
+
+.approve-form .form-group {
+    margin-bottom: 15px;
+}
+
+.approve-form label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.approve-form input[type="email"] {
+    width: 100%;
+    max-width: 400px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.confirm-text {
+    color: #666;
+    font-size: 0.95em;
+}
+
+.divider {
+    margin: 30px 0;
+    border: none;
+    border-top: 1px solid #ddd;
+}
+
+.nav-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: space-between;
+}
+
+.inline-form {
+    display: inline;
+}
+</style>
+{% endblock %}

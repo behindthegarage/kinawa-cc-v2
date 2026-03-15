@@ -1,0 +1,267 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="gfs-container">
+    <div class="gfs-header">
+        <h1>GFS Reconciliation</h1>
+        <p class="subtitle">Upload GFS invoice CSV for automatic reconciliation</p>
+    </div>
+
+    <div class="gfs-upload-section">
+        <form method="POST" action="{{ url_for('gfs.upload') }}" enctype="multipart/form-data" class="upload-form">
+            <div class="form-group">
+                <label for="csv_file">GFS Invoice CSV (required)</label>
+                <input type="file" name="csv_file" id="csv_file" accept=".csv" required>
+                <p class="help-text">Export from GFS portal: Invoice Credit/Export to CSV</p>
+            </div>
+
+            <div class="form-group">
+                <label for="pdf_file">Original Invoice PDF (optional)</label>
+                <input type="file" name="pdf_file" id="pdf_file" accept=".pdf">
+                <p class="help-text">Used to extract invoice number and date automatically</p>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    📤 Upload & Process
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="gfs-info">
+        <h3>How it works</h3>
+        <ol>
+            <li>Upload your GFS invoice CSV export</li>
+            <li>System automatically parses all line items</li>
+            <li>Review each item and mark disposables (100% School Age)</li>
+            <li>Approve to generate PDF report with 67/33 split</li>
+            <li>Report is emailed automatically with proper account codes</li>
+        </ol>
+        
+        <div class="allocation-info">
+            <h4>Default Allocation Rules</h4>
+            <ul>
+                <li><strong>Food items:</strong> 67% School Age / 33% GSRP</li>
+                <li><strong>Disposables:</strong> 100% School Age</li>
+                <li><strong>Account Code (SA):</strong> 23.1.351.5610.200</li>
+                <li><strong>Account Code (GSRP):</strong> PLACEHOLDER_GSRP</li>
+            </ul>
+        </div>
+    </div>
+
+    {% if recent %}
+    <div class="gfs-recent">
+        <h3>Recent Uploads</h3>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Invoice #</th>
+                    <th>Date</th>
+                    <th>Total</th>
+                    <th>Status</th>
+                    <th>Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rec in recent %}
+                <tr class="status-{{ rec.status }}">
+                    <td>{{ rec.invoice_number }}</td>
+                    <td>{{ rec.invoice_date.strftime('%m/%d/%Y') if rec.invoice_date else 'N/A' }}</td>
+                    <td class="numeric">${{ "%.2f"|format(rec.total_amount|float) if rec.total_amount else '0.00' }}</td>
+                    <td>
+                        <span class="status-badge {{ rec.status }}">
+                            {{ rec.status|title }}
+                        </span>
+                    </td>
+                    <td>{{ rec.created_at.strftime('%m/%d/%Y %H:%M') }}</td>
+                    <td>
+                        {% if rec.status == 'pending' %}
+                        <a href="{{ url_for('gfs.review', rec_id=rec.id) }}" class="btn btn-sm btn-primary">Review</a>
+                        {% else %}
+                        <a href="{{ url_for('gfs.review', rec_id=rec.id) }}" class="btn btn-sm btn-secondary">View</a>
+                        {% endif %}
+                        {% if rec.status == 'approved' and rec.pdf_path %}
+                        <a href="{{ url_for('gfs.download_pdf', rec_id=rec.id) }}" class="btn btn-sm btn-secondary">PDF</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <p class="view-all"><a href="{{ url_for('gfs.history') }}">View all reconciliations →</a></p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+.gfs-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.gfs-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.gfs-header h1 {
+    color: #1a5276;
+    margin-bottom: 5px;
+}
+
+.gfs-header .subtitle {
+    color: #666;
+    margin: 0;
+}
+
+.gfs-upload-section {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 30px;
+    margin-bottom: 30px;
+}
+
+.upload-form .form-group {
+    margin-bottom: 20px;
+}
+
+.upload-form label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #333;
+}
+
+.upload-form input[type="file"] {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    border: 2px dashed #ccc;
+    border-radius: 6px;
+    background: white;
+    cursor: pointer;
+}
+
+.upload-form .help-text {
+    font-size: 0.85em;
+    color: #666;
+    margin-top: 5px;
+    margin-bottom: 0;
+}
+
+.form-actions {
+    text-align: center;
+    margin-top: 25px;
+}
+
+.btn-lg {
+    padding: 12px 30px;
+    font-size: 1.1em;
+}
+
+.gfs-info {
+    background: #e8f4f8;
+    border-left: 4px solid #1a5276;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.gfs-info h3, .gfs-info h4 {
+    color: #1a5276;
+    margin-top: 0;
+}
+
+.gfs-info ol, .gfs-info ul {
+    margin: 10px 0;
+    padding-left: 20px;
+}
+
+.gfs-info li {
+    margin-bottom: 5px;
+}
+
+.allocation-info {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid #5dade2;
+}
+
+.gfs-recent {
+    margin-top: 30px;
+}
+
+.gfs-recent h3 {
+    color: #1a5276;
+    border-bottom: 2px solid #1a5276;
+    padding-bottom: 10px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.data-table th {
+    background: #1a5276;
+    color: white;
+    padding: 12px;
+    text-align: left;
+}
+
+.data-table td {
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
+}
+
+.data-table tr:hover {
+    background: #f5f5f5;
+}
+
+.numeric {
+    text-align: right;
+    font-family: monospace;
+}
+
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: 500;
+}
+
+.status-badge.pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-badge.approved {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-badge.rejected {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.view-all {
+    text-align: right;
+    margin-top: 15px;
+}
+
+.view-all a {
+    color: #1a5276;
+    text-decoration: none;
+}
+
+.view-all a:hover {
+    text-decoration: underline;
+}
+</style>
+{% endblock %}
