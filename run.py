@@ -18,9 +18,8 @@ sys.path.insert(0, project_dir)
 
 from app import create_app
 
-def main():
-    """Run the Flask application."""
-    # Get config from command line or environment
+def get_config_name():
+    """Get config name from environment or use default."""
     config_map = {
         'dev': 'development',
         'development': 'development',
@@ -32,14 +31,21 @@ def main():
     
     config_name = 'default'
     
-    # Check command line args
-    for arg in sys.argv[1:]:
-        if arg.startswith('--config='):
-            config_name = config_map.get(arg.split('=')[1], 'default')
+    # Check command line args (only when running directly)
+    if __name__ == '__main__':
+        for arg in sys.argv[1:]:
+            if arg.startswith('--config='):
+                config_name = config_map.get(arg.split('=')[1], 'default')
     
-    # Check environment variable
+    # Check environment variable (FLASK_ENV takes precedence)
     if 'FLASK_ENV' in os.environ:
         config_name = config_map.get(os.environ['FLASK_ENV'], config_name)
+    
+    return config_name
+
+def main():
+    """Run the Flask application."""
+    config_name = get_config_name()
     
     # Create and run the app
     app = create_app(config_name)
@@ -55,6 +61,10 @@ def main():
     print(f"Press Ctrl+C to stop")
     
     app.run(host=host, port=port, debug=debug)
+
+# Create app instance for Flask CLI (uses FLASK_ENV)
+config_name = get_config_name()
+app = create_app(config_name)
 
 if __name__ == '__main__':
     main()
