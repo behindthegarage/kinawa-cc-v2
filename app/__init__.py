@@ -41,23 +41,8 @@ def create_app(config_name='default'):
     def inject_now():
         return {'now': datetime.now}
     
-    # Create admin user (for MVP)
-    with app.app_context():
-        _create_admin_user(app)
+    # Register CLI commands
+    from app.cli import init_app_cli
+    init_app_cli(app)
     
     return app
-
-
-def _create_admin_user(app):
-    """Create admin user if it doesn't exist."""
-    db.create_all()
-    admin = User.query.filter_by(username=app.config['ADMIN_USERNAME']).first()
-    if not admin:
-        admin = User(
-            username=app.config['ADMIN_USERNAME'],
-            email='admin@clubkinawa.net'
-        )
-        admin.set_password(app.config['ADMIN_PASSWORD'])
-        db.session.add(admin)
-        db.session.commit()
-        print(f"Created admin user: {app.config['ADMIN_USERNAME']}")
