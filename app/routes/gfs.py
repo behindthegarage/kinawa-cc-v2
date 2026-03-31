@@ -17,7 +17,7 @@ bp = Blueprint('gfs', __name__, url_prefix='/gfs')
 
 # Account codes
 ACCOUNT_FOOD_SA = "23.1.351.5610.200"  # School Age - Food
-ACCOUNT_GRANT_GSRP = "PLACEHOLDER_GSRP"  # GSRP - Grant (placeholder)
+ACCOUNT_GRANT_GSRP = "23.1.118.5110.000.3436.00629.0"  # GSRP - Grant
 # Allocation percentages
 SA_PERCENT = 0.67
 GSRP_PERCENT = 0.33
