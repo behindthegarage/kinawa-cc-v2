@@ -789,8 +789,9 @@ def approve(rec_id):
         # Send email
         email_to = request.form.get('email_to') or 'adam.brussow@okemosk12.net'
         attachments = [pdf_path]
-        if rec.csv_path and os.path.exists(rec.csv_path):
-            attachments.append(rec.csv_path)
+        source_pdf_path = get_original_invoice_path(rec)
+        if source_pdf_path:
+            attachments.append(source_pdf_path)
         
         subject = f'GFS Reconciliation Approved - {rec.invoice_number}'
         body = f"""The GFS invoice reconciliation has been approved.
@@ -802,7 +803,7 @@ Total: ${total:,.2f}
 Approved by: {current_user.username}
 Approved at: {rec.approved_at.strftime('%m/%d/%Y %H:%M')}
 
-Please find the reconciliation report attached.
+Please find the reconciliation report and original invoice attached.
 """
         
         if send_email_smtp(subject, body, attachments=attachments, to_email=email_to):
