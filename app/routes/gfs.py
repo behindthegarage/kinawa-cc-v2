@@ -7,6 +7,7 @@ import csv
 import json
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -417,8 +418,26 @@ def html_to_pdf(html_content, output_path):
             f.write(html_content)
             html_file = f.name
 
+        wkhtmltopdf_path = (
+            shutil.which('wkhtmltopdf')
+            or next(
+                (
+                    candidate for candidate in (
+                        '/usr/bin/wkhtmltopdf',
+                        '/usr/local/bin/wkhtmltopdf',
+                    ) if os.path.exists(candidate)
+                ),
+                None,
+            )
+        )
+
+        if not wkhtmltopdf_path:
+            current_app.logger.warning("wkhtmltopdf not found")
+            os.unlink(html_file)
+            return False
+
         result = subprocess.run(
-            ['wkhtmltopdf',
+            [wkhtmltopdf_path,
              '--enable-local-file-access',
              '--page-size', 'Letter',
              '--margin-top', '0.75in',
@@ -433,6 +452,12 @@ def html_to_pdf(html_content, output_path):
 
         if result.returncode == 0 and os.path.exists(output_path):
             return True
+
+        current_app.logger.error(
+            "wkhtmltopdf failed with code %s: %s",
+            result.returncode,
+            (result.stderr or '').strip()
+        )
     except FileNotFoundError:
         current_app.logger.warning("wkhtmltopdf not found")
     return False
