@@ -376,7 +376,6 @@ def generate_reconciliation_html(items, total, invoice_num, date_str, csv_filena
     <div class="notes">
         <div class="notes-title">Allocation Notes:</div>
         <div>• Food items: 67% School Age / 33% GSRP (based on enrollment)</div>
-        <div>• Disposables: 100% School Age ({disposable_count} items marked)</div>
         <div>• Original GFS invoice attached for reference</div>
     </div>
     
