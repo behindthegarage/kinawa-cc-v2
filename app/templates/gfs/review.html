@@ -20,34 +20,38 @@
             <div class="card-value">${{ "%.2f"|format(total) }}</div>
         </div>
         <div class="card card-sa">
-            <div class="card-label">School Age (67%)</div>
+            <div class="card-label">School Age Total</div>
             <div class="card-value">${{ "%.2f"|format(sa_total) }}</div>
             <div class="card-account">{{ sa_account }}</div>
         </div>
         <div class="card card-gsrp">
-            <div class="card-label">GSRP (33%)</div>
+            <div class="card-label">GSRP Total</div>
             <div class="card-value">${{ "%.2f"|format(gsrp_total) }}</div>
             <div class="card-account">{{ gsrp_account }}</div>
         </div>
         <div class="card">
-            <div class="card-label">Disposables</div>
-            <div class="card-value">{{ disposable_count }}</div>
-            <div class="card-account">items marked</div>
+            <div class="card-label">GSRP Items</div>
+            <div class="card-value">{{ gsrp_item_count }}</div>
+            <div class="card-account">items checked</div>
         </div>
     </div>
 
     <!-- Instructions -->
     {% if rec.status == 'pending' %}
     <div class="instructions alert alert-info">
-        <strong>Instructions:</strong> Review each item below. Click <strong>"Mark as Disposable"</strong> 
-        for items like napkins, cups, plates, etc. These will be allocated 100% to School Age instead of the 67/33 split.
+        <strong>Instructions:</strong> Review each item below. Check <strong>"Use in GSRP"</strong>
+        for items that should use the normal 67/33 School Age / GSRP split. Leave unchecked for items that should stay 100% School Age.
     </div>
     {% endif %}
 
     <!-- Line Items Table -->
     <div class="items-section">
         <h3>Line Items ({{ items|length }})</h3>
-        
+
+        {% if rec.status == 'pending' %}
+        <form method="POST" action="{{ url_for('gfs.recalculate_review', rec_id=rec.id) }}" class="recalculate-form">
+        {% endif %}
+
         <table class="items-table">
             <thead>
                 <tr>
@@ -57,15 +61,13 @@
                     <th>Extended</th>
                     <th>SA Allocation</th>
                     <th>GSRP Allocation</th>
-                    <th>Type</th>
-                    {% if rec.status == 'pending' %}
-                    <th>Action</th>
-                    {% endif %}
+                    <th>Allocation</th>
+                    <th>Use in GSRP</th>
                 </tr>
             </thead>
             <tbody>
                 {% for item in items %}
-                <tr class="{{ 'disposable-row' if item.is_disposable else '' }}">
+                <tr class="{{ 'gsrp-row' if item.include_in_gsrp else '' }}">
                     <td>{{ item.qty }}</td>
                     <td class="description">
                         {{ item.description }}
@@ -78,23 +80,26 @@
                     <td class="numeric">${{ "%.2f"|format(item.sa_allocation) }}</td>
                     <td class="numeric">${{ "%.2f"|format(item.gsrp_allocation) }}</td>
                     <td>
-                        {% if item.is_disposable %}
-                        <span class="type-badge disposable">Disposable</span>
+                        {% if item.include_in_gsrp %}
+                        <span class="type-badge gsrp">67/33 Split</span>
                         {% else %}
-                        <span class="type-badge food">Food</span>
+                        <span class="type-badge sa-only">School Age Only</span>
                         {% endif %}
                     </td>
-                    {% if rec.status == 'pending' %}
                     <td>
-                        <form method="POST" action="{{ url_for('gfs.toggle_disposable', rec_id=rec.id, item_index=loop.index0) }}" class="inline-form">
-                            {% if item.is_disposable %}
-                            <button type="submit" class="btn btn-sm btn-secondary">Mark as Food</button>
+                        {% if rec.status == 'pending' %}
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="include_in_gsrp" value="{{ loop.index0 }}" {% if item.include_in_gsrp %}checked{% endif %}>
+                            <span>Use in GSRP</span>
+                        </label>
+                        {% else %}
+                            {% if item.include_in_gsrp %}
+                            <span class="type-badge gsrp">Yes</span>
                             {% else %}
-                            <button type="submit" class="btn btn-sm btn-warning">Mark as Disposable</button>
+                            <span class="type-badge sa-only">No</span>
                             {% endif %}
-                        </form>
+                        {% endif %}
                     </td>
-                    {% endif %}
                 </tr>
                 {% endfor %}
             </tbody>
@@ -104,10 +109,17 @@
                     <td class="numeric"><strong>${{ "%.2f"|format(total) }}</strong></td>
                     <td class="numeric"><strong>${{ "%.2f"|format(sa_total) }}</strong></td>
                     <td class="numeric"><strong>${{ "%.2f"|format(gsrp_total) }}</strong></td>
-                    <td colspan="{{ 3 if rec.status == 'pending' else 2 }}"></td>
+                    <td colspan="2"></td>
                 </tr>
             </tfoot>
         </table>
+
+        {% if rec.status == 'pending' %}
+        <div class="table-actions">
+            <button type="submit" class="btn btn-primary">↻ Recalculate Reconciliation</button>
+        </div>
+        </form>
+        {% endif %}
     </div>
 
     <!-- Action Buttons -->
@@ -292,8 +304,8 @@
     background: #f5f5f5;
 }
 
-.items-table tr.disposable-row {
-    background: #fff8e1;
+.items-table tr.gsrp-row {
+    background: #eef8ff;
 }
 
 .items-table .description {
@@ -332,9 +344,14 @@
     color: #155724;
 }
 
-.type-badge.disposable {
-    background: #fff3cd;
-    color: #856404;
+.type-badge.gsrp {
+    background: #d6ecff;
+    color: #0b5394;
+}
+
+.type-badge.sa-only {
+    background: #f3f4f6;
+    color: #4b5563;
 }
 
 .actions-section {
@@ -388,8 +405,17 @@
     justify-content: space-between;
 }
 
-.inline-form {
-    display: inline;
+.checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9em;
+}
+
+.table-actions {
+    margin-top: 18px;
+    display: flex;
+    justify-content: flex-end;
 }
 </style>
 {% endblock %}

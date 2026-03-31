@@ -17,8 +17,6 @@ bp = Blueprint('gfs', __name__, url_prefix='/gfs')
 # Account codes
 ACCOUNT_FOOD_SA = "23.1.351.5610.200"  # School Age - Food
 ACCOUNT_GRANT_GSRP = "PLACEHOLDER_GSRP"  # GSRP - Grant (placeholder)
-ACCOUNT_FOOD_DISPOSABLES = "23.1.351.5610.200"  # Disposables - Food account
-
 # Allocation percentages
 SA_PERCENT = 0.67
 GSRP_PERCENT = 0.33
@@ -38,31 +36,49 @@ For direct contact: adam.brussow@okemosk12.net
 """
 
 
-def classify_item(is_disposable=False):
-    """Classify item based on disposable flag (set during review)."""
-    if is_disposable:
+def item_includes_gsrp(item):
+    """Return whether an item should use the standard GSRP split.
+
+    Supports both the current `include_in_gsrp` flag and legacy `is_disposable`
+    records so existing pending reconciliations do not silently change meaning.
+    """
+    if 'include_in_gsrp' in item:
+        return bool(item.get('include_in_gsrp'))
+
+    if 'is_disposable' in item:
+        return not bool(item.get('is_disposable'))
+
+    return False
+
+
+def classify_item(include_in_gsrp=False):
+    """Classify item based on whether it should use the GSRP split."""
+    if include_in_gsrp:
         return {
-            'type': 'disposable',
-            'sa_amount': 1.0,  # 100% to School Age
-            'gsrp_amount': 0.0,
-            'sa_account': ACCOUNT_FOOD_DISPOSABLES,
-            'gsrp_account': None,
-            'notes': 'Disposable - 100% School Age'
-        }
-    else:
-        # Food item - split 67/33
-        return {
-            'type': 'food',
+            'type': 'gsrp_split',
             'sa_amount': SA_PERCENT,
             'gsrp_amount': GSRP_PERCENT,
             'sa_account': ACCOUNT_FOOD_SA,
             'gsrp_account': ACCOUNT_GRANT_GSRP,
-            'notes': f'Food - {SA_PERCENT*100:.0f}% SA / {GSRP_PERCENT*100:.0f}% GSRP'
+            'notes': f'Used by GSRP - {SA_PERCENT*100:.0f}% SA / {GSRP_PERCENT*100:.0f}% GSRP'
         }
+
+    return {
+        'type': 'school_age_only',
+        'sa_amount': 1.0,
+        'gsrp_amount': 0.0,
+        'sa_account': ACCOUNT_FOOD_SA,
+        'gsrp_account': None,
+        'notes': 'School Age only - 100% School Age'
+    }
 
 
 def parse_gfs_csv(csv_path):
-    """Parse GFS CSV export - default all items to food."""
+    """Parse GFS CSV export.
+
+    New reconciliations default items to School Age only until explicitly marked
+    for GSRP use during review.
+    """
     items = []
     total = 0.0
     
@@ -92,8 +108,7 @@ def parse_gfs_csv(csv_path):
             
             if desc and price > 0:
                 extended = price * qty
-                # Default to food (not disposable)
-                classification = classify_item(is_disposable=False)
+                classification = classify_item(include_in_gsrp=False)
                 
                 items.append({
                     'item_number': item_num,
@@ -101,7 +116,7 @@ def parse_gfs_csv(csv_path):
                     'qty': qty,
                     'unit_price': price,
                     'extended': extended,
-                    'is_disposable': False,  # Default to False, user can mark during review
+                    'include_in_gsrp': False,
                     'classification': classification,
                     'sa_allocation': extended * classification['sa_amount'],
                     'gsrp_allocation': extended * classification['gsrp_amount']
@@ -163,10 +178,11 @@ def parse_date_from_filename(filename):
 
 
 def recalculate_allocations(items):
-    """Recalculate allocations based on is_disposable flags."""
+    """Recalculate allocations based on GSRP-use flags."""
     for item in items:
-        is_disposable = item.get('is_disposable', False)
-        classification = classify_item(is_disposable=is_disposable)
+        include_in_gsrp = item_includes_gsrp(item)
+        item['include_in_gsrp'] = include_in_gsrp
+        classification = classify_item(include_in_gsrp=include_in_gsrp)
         item['classification'] = classification
         item['sa_allocation'] = item['extended'] * classification['sa_amount']
         item['gsrp_allocation'] = item['extended'] * classification['gsrp_amount']
@@ -185,8 +201,7 @@ def generate_reconciliation_html(items, total, invoice_num, date_str, csv_filena
     sa_total = sum(item['sa_allocation'] for item in items)
     gsrp_total = sum(item['gsrp_allocation'] for item in items)
     
-    # Count disposables
-    disposable_count = sum(1 for item in items if item.get('is_disposable', False))
+    gsrp_item_count = sum(1 for item in items if item_includes_gsrp(item))
     
     html = f"""<!DOCTYPE html>
 <html>
@@ -375,7 +390,8 @@ def generate_reconciliation_html(items, total, invoice_num, date_str, csv_filena
     
     <div class="notes">
         <div class="notes-title">Allocation Notes:</div>
-        <div>• Food items: 67% School Age / 33% GSRP (based on enrollment)</div>
+        <div>• Items checked for GSRP use: 67% School Age / 33% GSRP ({gsrp_item_count} items marked)</div>
+        <div>• Items not checked for GSRP use: 100% School Age</div>
         <div>• Original GFS invoice attached for reference</div>
     </div>
     
@@ -603,12 +619,19 @@ def review(rec_id):
     rec = GFSReconciliation.query.get_or_404(rec_id)
     
     items = rec.reconciled_data.get('items', [])
+
+    needs_save = any('include_in_gsrp' not in item for item in items)
+    items = recalculate_allocations(items)
+    if needs_save:
+        rec.reconciled_data['items'] = items
+        db.session.commit()
+
     total = float(rec.total_amount) if rec.total_amount else 0
     
     # Calculate totals
     sa_total = sum(item.get('sa_allocation', 0) for item in items)
     gsrp_total = sum(item.get('gsrp_allocation', 0) for item in items)
-    disposable_count = sum(1 for item in items if item.get('is_disposable', False))
+    gsrp_item_count = sum(1 for item in items if item.get('include_in_gsrp', False))
     
     return render_template('gfs/review.html', 
         title='Review GFS Reconciliation',
@@ -617,16 +640,16 @@ def review(rec_id):
         total=total,
         sa_total=sa_total,
         gsrp_total=gsrp_total,
-        disposable_count=disposable_count,
+        gsrp_item_count=gsrp_item_count,
         sa_account=ACCOUNT_FOOD_SA,
         gsrp_account=ACCOUNT_GRANT_GSRP
     )
 
 
-@bp.route('/review/<int:rec_id>/toggle-disposable/<int:item_index>', methods=['POST'])
+@bp.route('/review/<int:rec_id>/recalculate', methods=['POST'])
 @login_required
-def toggle_disposable(rec_id, item_index):
-    """Toggle disposable flag for an item."""
+def recalculate_review(rec_id):
+    """Update GSRP item selections and recalculate allocations."""
     rec = GFSReconciliation.query.get_or_404(rec_id)
     
     if rec.status != 'pending':
@@ -634,19 +657,19 @@ def toggle_disposable(rec_id, item_index):
         return redirect(url_for('gfs.review', rec_id=rec_id))
     
     items = rec.reconciled_data.get('items', [])
-    if 0 <= item_index < len(items):
-        items[item_index]['is_disposable'] = not items[item_index].get('is_disposable', False)
-        
-        # Recalculate allocations
-        items = recalculate_allocations(items)
-        rec.reconciled_data['items'] = items
-        
-        # Update total allocations in database
-        total = sum(item['extended'] for item in items)
-        rec.total_amount = total
-        
-        db.session.commit()
-        flash('Item updated', 'success')
+    selected_indexes = set(request.form.getlist('include_in_gsrp'))
+
+    for index, item in enumerate(items):
+        item['include_in_gsrp'] = str(index) in selected_indexes
+
+    items = recalculate_allocations(items)
+    rec.reconciled_data['items'] = items
+
+    total = sum(item['extended'] for item in items)
+    rec.total_amount = total
+
+    db.session.commit()
+    flash('Reconciliation updated', 'success')
     
     return redirect(url_for('gfs.review', rec_id=rec_id))
 
