@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import tempfile
 from pathlib import Path
+from sqlalchemy.orm.attributes import flag_modified
 from werkzeug.utils import secure_filename
 
 bp = Blueprint('gfs', __name__, url_prefix='/gfs')
@@ -563,6 +564,14 @@ def get_original_invoice_path(rec):
     return None
 
 
+def set_reconciled_data(rec, **updates):
+    """Persist JSON updates reliably for SQLAlchemy JSON columns."""
+    data = dict(rec.reconciled_data or {})
+    data.update(updates)
+    rec.reconciled_data = data
+    flag_modified(rec, 'reconciled_data')
+
+
 @bp.route('/')
 @login_required
 def index():
@@ -664,7 +673,7 @@ def review(rec_id):
     needs_save = any('include_in_gsrp' not in item for item in items)
     items = recalculate_allocations(items)
     if needs_save:
-        rec.reconciled_data['items'] = items
+        set_reconciled_data(rec, items=items)
         db.session.commit()
 
     total = float(rec.total_amount) if rec.total_amount else 0
@@ -727,7 +736,7 @@ def recalculate_review(rec_id):
         item['include_in_gsrp'] = str(index) in selected_indexes
 
     items = recalculate_allocations(items)
-    rec.reconciled_data['items'] = items
+    set_reconciled_data(rec, items=items)
 
     total = sum(item['extended'] for item in items)
     rec.total_amount = total
@@ -759,10 +768,8 @@ def approve(rec_id):
         return redirect(url_for('gfs.review', rec_id=rec_id))
     rec.invoice_number = invoice_number
 
-    if rec.reconciled_data is None:
-        rec.reconciled_data = {}
-    if not rec.reconciled_data.get('source_pdf_path'):
-        rec.reconciled_data['source_pdf_path'] = get_original_invoice_path(rec)
+    if not (rec.reconciled_data or {}).get('source_pdf_path'):
+        set_reconciled_data(rec, source_pdf_path=get_original_invoice_path(rec))
     
     # Generate PDF
     html = generate_reconciliation_html(items, total, rec.invoice_number, date_str, csv_filename, rec.id)
