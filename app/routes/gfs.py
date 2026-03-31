@@ -523,6 +523,21 @@ def get_upload_path():
     return upload_dir
 
 
+def get_original_invoice_path(rec):
+    """Return the uploaded source invoice PDF path for a reconciliation."""
+    reconciled_data = rec.reconciled_data or {}
+    source_pdf_path = reconciled_data.get('source_pdf_path')
+    if source_pdf_path and os.path.exists(source_pdf_path):
+        return source_pdf_path
+
+    # Legacy fallback: pending records originally stored the uploaded invoice PDF
+    # in `pdf_path` before approval generated the final reconciliation PDF.
+    if rec.status == 'pending' and rec.pdf_path and os.path.exists(rec.pdf_path):
+        return rec.pdf_path
+
+    return None
+
+
 @bp.route('/')
 @login_required
 def index():
@@ -602,6 +617,7 @@ def upload():
             'items': items,
             'csv_filename': csv_file.filename,
             'pdf_filename': pdf_file.filename if pdf_file else None,
+            'source_pdf_path': pdf_path,
             'date_str': date_str
         }
     )
@@ -632,6 +648,7 @@ def review(rec_id):
     sa_total = sum(item.get('sa_allocation', 0) for item in items)
     gsrp_total = sum(item.get('gsrp_allocation', 0) for item in items)
     gsrp_item_count = sum(1 for item in items if item.get('include_in_gsrp', False))
+    original_invoice_available = bool(get_original_invoice_path(rec))
     
     return render_template('gfs/review.html', 
         title='Review GFS Reconciliation',
@@ -641,9 +658,31 @@ def review(rec_id):
         sa_total=sa_total,
         gsrp_total=gsrp_total,
         gsrp_item_count=gsrp_item_count,
+        original_invoice_available=original_invoice_available,
         sa_account=ACCOUNT_FOOD_SA,
         gsrp_account=ACCOUNT_GRANT_GSRP
     )
+
+
+@bp.route('/review/<int:rec_id>/details', methods=['POST'])
+@login_required
+def update_details(rec_id):
+    """Update invoice details for a pending reconciliation."""
+    rec = GFSReconciliation.query.get_or_404(rec_id)
+
+    if rec.status != 'pending':
+        flash('Cannot modify approved reconciliation', 'error')
+        return redirect(url_for('gfs.review', rec_id=rec_id))
+
+    invoice_number = (request.form.get('invoice_number') or '').strip()
+    if not invoice_number:
+        flash('Invoice number is required', 'error')
+        return redirect(url_for('gfs.review', rec_id=rec_id))
+
+    rec.invoice_number = invoice_number
+    db.session.commit()
+    flash('Invoice details updated', 'success')
+    return redirect(url_for('gfs.review', rec_id=rec_id))
 
 
 @bp.route('/review/<int:rec_id>/recalculate', methods=['POST'])
@@ -688,6 +727,17 @@ def approve(rec_id):
     total = sum(item['extended'] for item in items)
     date_str = rec.reconciled_data.get('date_str')
     csv_filename = rec.reconciled_data.get('csv_filename', 'unknown.csv')
+
+    invoice_number = (request.form.get('invoice_number') or rec.invoice_number or '').strip()
+    if not invoice_number:
+        flash('Invoice number is required before approval', 'error')
+        return redirect(url_for('gfs.review', rec_id=rec_id))
+    rec.invoice_number = invoice_number
+
+    if rec.reconciled_data is None:
+        rec.reconciled_data = {}
+    if not rec.reconciled_data.get('source_pdf_path'):
+        rec.reconciled_data['source_pdf_path'] = get_original_invoice_path(rec)
     
     # Generate PDF
     html = generate_reconciliation_html(items, total, rec.invoice_number, date_str, csv_filename, rec.id)
@@ -785,3 +835,17 @@ def download_pdf(rec_id):
         return redirect(url_for('gfs.review', rec_id=rec_id))
     
     return send_file(rec.pdf_path, as_attachment=True)
+
+
+@bp.route('/source-invoice/<int:rec_id>')
+@login_required
+def preview_source_invoice(rec_id):
+    """Preview the original uploaded invoice PDF inline."""
+    rec = GFSReconciliation.query.get_or_404(rec_id)
+    source_pdf_path = get_original_invoice_path(rec)
+
+    if not source_pdf_path:
+        flash('Original invoice PDF not available', 'error')
+        return redirect(url_for('gfs.review', rec_id=rec_id))
+
+    return send_file(source_pdf_path, mimetype='application/pdf', as_attachment=False)

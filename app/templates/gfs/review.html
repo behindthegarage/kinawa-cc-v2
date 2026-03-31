@@ -13,6 +13,50 @@
         </p>
     </div>
 
+    <div class="review-meta-grid">
+        <div class="meta-card">
+            <h3>Reconciliation Details</h3>
+            {% if rec.status == 'pending' %}
+            <form method="POST" action="{{ url_for('gfs.update_details', rec_id=rec.id) }}" class="details-form">
+                <div class="form-group">
+                    <label for="invoice_number">Invoice Number</label>
+                    <input type="text" id="invoice_number" name="invoice_number" value="{{ rec.invoice_number }}" required>
+                    <p class="help-text">Used on the reconciliation PDF and email subject.</p>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-secondary">Save Invoice Number</button>
+                </div>
+            </form>
+            {% else %}
+            <div class="meta-value">
+                <span class="meta-label">Invoice Number</span>
+                <strong>{{ rec.invoice_number }}</strong>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="meta-card">
+            <h3>Original Invoice</h3>
+            {% if original_invoice_available %}
+            <p class="confirm-text">Preview the uploaded invoice PDF to confirm the balance and invoice details.</p>
+            <div class="form-actions">
+                <a href="{{ url_for('gfs.preview_source_invoice', rec_id=rec.id) }}" target="_blank" rel="noopener" class="btn btn-secondary">Open Original Invoice</a>
+            </div>
+            {% else %}
+            <p class="confirm-text">No original invoice PDF is attached to this reconciliation.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if original_invoice_available %}
+    <div class="invoice-preview-card">
+        <h3>Original Invoice Preview</h3>
+        <div class="pdf-preview-frame">
+            <iframe src="{{ url_for('gfs.preview_source_invoice', rec_id=rec.id) }}" title="Original invoice preview"></iframe>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Summary Cards -->
     <div class="summary-cards">
         <div class="card">
@@ -127,7 +171,8 @@
     <div class="actions-section">
         <h3>Approve Reconciliation</h3>
         
-        <form method="POST" action="{{ url_for('gfs.approve', rec_id=rec.id) }}" class="approve-form">
+        <form method="POST" action="{{ url_for('gfs.approve', rec_id=rec.id) }}" class="approve-form" onsubmit="var src=document.getElementById('invoice_number'); var dest=document.getElementById('approve_invoice_number'); if(src && dest){ dest.value = src.value; }">
+            <input type="hidden" id="approve_invoice_number" name="invoice_number" value="{{ rec.invoice_number }}">
             <div class="form-group">
                 <label for="email_to">Email report to:</label>
                 <input type="email" name="email_to" id="email_to" value="adam.brussow@okemosk12.net" required>
@@ -230,6 +275,73 @@
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 15px;
     margin-bottom: 25px;
+}
+
+.review-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 18px;
+    margin-bottom: 24px;
+}
+
+.meta-card,
+.invoice-preview-card {
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.meta-card h3,
+.invoice-preview-card h3 {
+    margin-top: 0;
+    margin-bottom: 12px;
+    color: #1a5276;
+}
+
+.details-form input[type="text"] {
+    width: 100%;
+    max-width: 320px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.help-text {
+    margin: 6px 0 0;
+    color: #666;
+    font-size: 0.9em;
+}
+
+.meta-value {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.meta-label {
+    font-size: 0.85em;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.invoice-preview-card {
+    margin-bottom: 25px;
+}
+
+.pdf-preview-frame {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f8f9fa;
+}
+
+.pdf-preview-frame iframe {
+    width: 100%;
+    height: 680px;
+    border: 0;
+    display: block;
 }
 
 .card {
