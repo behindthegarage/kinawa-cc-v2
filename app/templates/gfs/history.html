@@ -66,6 +66,11 @@
                             
                             {% if rec.status == 'approved' and rec.pdf_path %}
                             <a href="{{ url_for('gfs.download_pdf', rec_id=rec.id) }}" class="btn btn-sm btn-secondary">PDF</a>
+                            <form method="POST" action="{{ url_for('gfs.resend_email', rec_id=rec.id) }}" class="inline-action-form">
+                                <input type="hidden" name="email_to" value="adam.brussow@okemosk12.net">
+                                <input type="hidden" name="next_view" value="history">
+                                <button type="submit" class="btn btn-sm btn-secondary">Re-send</button>
+                            </form>
                             {% endif %}
                         </div>
                     </td>
@@ -229,7 +234,17 @@
 
 .action-buttons {
     display: flex;
+    flex-wrap: wrap;
     gap: 8px;
+}
+
+.inline-action-form {
+    display: inline;
+}
+
+.inline-action-form .btn {
+    border: 0;
+    cursor: pointer;
 }
 
 .pagination {

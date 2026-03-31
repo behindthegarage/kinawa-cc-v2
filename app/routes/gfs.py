@@ -542,6 +542,56 @@ def send_email_smtp(subject, body, attachments=None, to_email=None):
         return False
 
 
+def build_gfs_approval_email(rec, email_to=None):
+    """Build approval/resend email content and attachments."""
+    date_str = (rec.reconciled_data or {}).get('date_str') or (
+        rec.invoice_date.strftime('%m/%d/%Y') if rec.invoice_date else 'N/A'
+    )
+    total = float(rec.total_amount or 0)
+
+    attachments = []
+    if rec.pdf_path and os.path.exists(rec.pdf_path):
+        attachments.append(rec.pdf_path)
+
+    source_pdf_path = get_original_invoice_path(rec)
+    if source_pdf_path:
+        attachments.append(source_pdf_path)
+
+    approved_by = rec.approved_by or 'admin'
+    approved_at = rec.approved_at.strftime('%m/%d/%Y %H:%M') if rec.approved_at else 'N/A'
+
+    subject = f'GFS Reconciliation Approved - {rec.invoice_number}'
+    body = f"""The GFS invoice reconciliation has been approved.
+
+Invoice: {rec.invoice_number}
+Date: {date_str}
+Total: ${total:,.2f}
+
+Approved by: {approved_by}
+Approved at: {approved_at}
+
+Please find the reconciliation report and original invoice attached.
+"""
+
+    return {
+        'to_email': email_to or 'adam.brussow@okemosk12.net',
+        'subject': subject,
+        'body': body,
+        'attachments': attachments,
+    }
+
+
+def send_gfs_approval_email(rec, email_to=None):
+    """Send the GFS approval/resend email."""
+    payload = build_gfs_approval_email(rec, email_to=email_to)
+    return send_email_smtp(
+        payload['subject'],
+        payload['body'],
+        attachments=payload['attachments'],
+        to_email=payload['to_email'],
+    )
+
+
 def get_upload_path():
     """Get path for GFS uploads."""
     upload_dir = os.path.join(current_app.instance_path, 'gfs_uploads')
@@ -788,25 +838,7 @@ def approve(rec_id):
         
         # Send email
         email_to = request.form.get('email_to') or 'adam.brussow@okemosk12.net'
-        attachments = [pdf_path]
-        source_pdf_path = get_original_invoice_path(rec)
-        if source_pdf_path:
-            attachments.append(source_pdf_path)
-        
-        subject = f'GFS Reconciliation Approved - {rec.invoice_number}'
-        body = f"""The GFS invoice reconciliation has been approved.
-
-Invoice: {rec.invoice_number}
-Date: {date_str or 'N/A'}
-Total: ${total:,.2f}
-
-Approved by: {current_user.username}
-Approved at: {rec.approved_at.strftime('%m/%d/%Y %H:%M')}
-
-Please find the reconciliation report and original invoice attached.
-"""
-        
-        if send_email_smtp(subject, body, attachments=attachments, to_email=email_to):
+        if send_gfs_approval_email(rec, email_to=email_to):
             flash(f'Reconciliation approved and emailed to {email_to}', 'success')
         else:
             flash('Reconciliation approved but email failed (check SMTP config)', 'warning')
@@ -832,6 +864,36 @@ def reject(rec_id):
     
     flash('Reconciliation rejected', 'success')
     return redirect(url_for('gfs.history'))
+
+
+@bp.route('/review/<int:rec_id>/resend-email', methods=['POST'])
+@login_required
+def resend_email(rec_id):
+    """Re-send email for an approved reconciliation."""
+    rec = GFSReconciliation.query.get_or_404(rec_id)
+
+    if rec.status != 'approved':
+        flash('Only approved reconciliations can be re-sent', 'error')
+        return redirect(url_for('gfs.review', rec_id=rec_id))
+
+    if not rec.pdf_path or not os.path.exists(rec.pdf_path):
+        flash('Reconciliation PDF is not available for re-send', 'error')
+        return redirect(url_for('gfs.review', rec_id=rec_id))
+
+    email_to = (request.form.get('email_to') or 'adam.brussow@okemosk12.net').strip()
+    if not email_to:
+        flash('Email address is required', 'error')
+        return redirect(url_for('gfs.review', rec_id=rec_id))
+
+    if send_gfs_approval_email(rec, email_to=email_to):
+        flash(f'Reconciliation email re-sent to {email_to}', 'success')
+    else:
+        flash('Re-send failed (check SMTP config)', 'warning')
+
+    next_view = request.form.get('next_view')
+    if next_view == 'history':
+        return redirect(url_for('gfs.history', status='approved'))
+    return redirect(url_for('gfs.review', rec_id=rec_id))
 
 
 @bp.route('/history')

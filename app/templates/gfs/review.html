@@ -208,11 +208,23 @@
         {% if rec.status == 'approved' %}
         <p>This reconciliation was approved on {{ rec.approved_at.strftime('%m/%d/%Y at %H:%M') }} by {{ rec.approved_by }}.</p>
         
-        {% if rec.pdf_path %}
-        <a href="{{ url_for('gfs.download_pdf', rec_id=rec.id) }}" class="btn btn-primary">
-            📄 Download PDF Report
-        </a>
-        {% endif %}
+        <div class="complete-actions-stack">
+            {% if rec.pdf_path %}
+            <a href="{{ url_for('gfs.download_pdf', rec_id=rec.id) }}" class="btn btn-primary">
+                📄 Download PDF Report
+            </a>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('gfs.resend_email', rec_id=rec.id) }}" class="approve-form resend-form">
+                <div class="form-group">
+                    <label for="resend_email_to">Re-send email to:</label>
+                    <input type="email" name="email_to" id="resend_email_to" value="adam.brussow@okemosk12.net" required>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-secondary">✉️ Re-send Email</button>
+                </div>
+            </form>
+        </div>
         {% elif rec.status == 'rejected' %}
         <p>This reconciliation was rejected.</p>
         {% endif %}
@@ -509,6 +521,18 @@
     margin: 30px 0;
     border: none;
     border-top: 1px solid #ddd;
+}
+
+.complete-actions-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    align-items: flex-start;
+}
+
+.resend-form {
+    width: 100%;
+    max-width: 420px;
 }
 
 .nav-actions {
