@@ -494,6 +494,30 @@ def load_smtp_config():
     return config
 
 
+def get_gfs_attachment_date_stamp(rec):
+    """Return the attachment date stamp as MMDDYYYY."""
+    if rec.invoice_date:
+        return rec.invoice_date.strftime('%m%d%Y')
+
+    reconciled_data = rec.reconciled_data or {}
+    raw_date = reconciled_data.get('date_str')
+    if raw_date:
+        for fmt in ('%m/%d/%Y', '%m-%d-%Y', '%Y-%m-%d'):
+            try:
+                return datetime.strptime(raw_date, fmt).strftime('%m%d%Y')
+            except ValueError:
+                pass
+
+    for key in ('pdf_filename', 'csv_filename'):
+        filename = reconciled_data.get(key) or ''
+        parsed_date = parse_date_from_filename(filename)
+        if parsed_date:
+            return datetime.strptime(parsed_date, '%m/%d/%Y').strftime('%m%d%Y')
+
+    fallback_dt = rec.approved_at or rec.created_at or datetime.utcnow()
+    return fallback_dt.strftime('%m%d%Y')
+
+
 def send_email_smtp(subject, body, attachments=None, to_email=None):
     """Send email via SMTP with optional attachments."""
     import smtplib
@@ -520,9 +544,19 @@ def send_email_smtp(subject, body, attachments=None, to_email=None):
         msg.attach(MIMEText(full_body, "plain"))
         
         if attachments:
-            for filepath in attachments:
-                if os.path.exists(filepath):
-                    filename = os.path.basename(filepath)
+            for attachment in attachments:
+                if isinstance(attachment, dict):
+                    filepath = attachment.get('path')
+                    filename = attachment.get('filename')
+                elif isinstance(attachment, (tuple, list)):
+                    filepath = attachment[0] if attachment else None
+                    filename = attachment[1] if len(attachment) > 1 else None
+                else:
+                    filepath = attachment
+                    filename = None
+
+                if filepath and os.path.exists(filepath):
+                    filename = filename or os.path.basename(filepath)
                     with open(filepath, 'rb') as f:
                         part = MIMEBase('application', 'octet-stream')
                         part.set_payload(f.read())
@@ -548,14 +582,21 @@ def build_gfs_approval_email(rec, email_to=None):
         rec.invoice_date.strftime('%m/%d/%Y') if rec.invoice_date else 'N/A'
     )
     total = float(rec.total_amount or 0)
+    date_stamp = get_gfs_attachment_date_stamp(rec)
 
     attachments = []
     if rec.pdf_path and os.path.exists(rec.pdf_path):
-        attachments.append(rec.pdf_path)
+        attachments.append({
+            'path': rec.pdf_path,
+            'filename': f'gfs_invoice_reconciled_{date_stamp}.pdf'
+        })
 
     source_pdf_path = get_original_invoice_path(rec)
     if source_pdf_path:
-        attachments.append(source_pdf_path)
+        attachments.append({
+            'path': source_pdf_path,
+            'filename': f'{date_stamp}_gfs_invoice.pdf'
+        })
 
     approved_by = rec.approved_by or 'admin'
     approved_at = rec.approved_at.strftime('%m/%d/%Y %H:%M') if rec.approved_at else 'N/A'
